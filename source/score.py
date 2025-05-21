@@ -1,6 +1,4 @@
 import os
-import gzip
-from Bio import SeqIO
 import argparse
 
 import torch
@@ -16,6 +14,11 @@ import gc
 import re
 import psutil
 from pynvml import nvmlInit, nvmlDeviceGetHandleByIndex, nvmlDeviceGetMemoryInfo, nvmlDeviceGetUtilizationRates
+
+from BERT_model.dataset import FastqIterableDataset
+from BERT_model.utils import get_true_label, log_resources, clear_GPU, setup_logger
+from BERT_model.collator import CollateFnWithTokenizer
+from emb_model.architecture import BertClassifier
 
 nvmlInit()
 os.environ["WANDB_DISABLED"] = "true"
@@ -61,7 +64,6 @@ if args.verbose:
 else:
     logging.getLogger().setLevel(logging.INFO)  # Default logging
 
-
 os.makedirs(os.path.dirname(scores_filename), exist_ok=True)
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -72,65 +74,6 @@ tokenizer_path = model_path
 tokenizer = AutoTokenizer.from_pretrained(tokenizer_path)
 
 loss = torch.nn.CrossEntropyLoss()
-
-def log_resources():
-    """Log CPU RAM and GPU usage during training."""
-    # CPU RAM Usage
-    cpu_mem_used = psutil.virtual_memory().used / 1e9
-    cpu_mem_total = psutil.virtual_memory().total / 1e9
-    logging.debug(f"CPU RAM Used: {cpu_mem_used:.2f} / {cpu_mem_total:.2f} GB")
-
-    # GPU Usage
-    if torch.cuda.is_available():
-        for i in range(torch.cuda.device_count()):
-            handle = nvmlDeviceGetHandleByIndex(i)
-            gpu_mem = nvmlDeviceGetMemoryInfo(handle)
-            gpu_util = nvmlDeviceGetUtilizationRates(handle).gpu
-            logging.debug(f"GPU {i}: {gpu_mem.used / 1e9:.2f} GB / {gpu_mem.total / 1e9:.2f} GB, Utilization: {gpu_util}%")
-
-class FastqIterableDataset(IterableDataset):
-    def __init__(self, file_path, chunk_size=1000, max_reads=None, max_length=None):
-        self.file_path = file_path
-        self.chunk_size = chunk_size
-        self.max_reads = max_reads
-        self.max_length = max_length  # Add max_length as an argument
-
-    def __iter__(self):
-        # Determine file type and open accordingly
-        if self.file_path.endswith('.gz'):
-            open_func = lambda x: gzip.open(x, 'rt')
-            file_format = "fastq"
-        elif self.file_path.endswith('.fasta'):
-            open_func = lambda x: open(x, 'rt')
-            file_format = "fasta"
-        elif self.file_path.endswith('.fastq'):
-            open_func = lambda x: open(x, 'rt')
-            file_format = "fastq"
-        else:
-            raise ValueError("Unsupported file format. Only .gz, .fasta, and .fastq files are supported.")
-        
-        with open_func(self.file_path) as handle:
-            for chunk in self._yield_chunks(handle, file_format):
-                for sample in chunk:
-                    yield sample
-
-    def _yield_chunks(self, handle, file_format):
-        chunk = []
-        read_count = 0
-        for record in SeqIO.parse(handle, file_format):
-            chunk.append({
-                'id': str(record.id),
-                'seq': str(record.seq)[:self.max_length] if self.max_length else str(record.seq)
-            })
-            read_count += 1
-            if len(chunk) == self.chunk_size:
-                yield chunk
-                chunk = []
-            if self.max_reads and read_count == self.max_reads:
-                yield chunk    
-                return  # Use return instead of break to exit the method
-        if chunk:  # Yield any remaining chunk
-            yield chunk
 
 def collate_fn(batch):
     seq = [re.sub('[^ACTGN]', 'N', r['seq'].upper()) for r in batch]

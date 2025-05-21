@@ -1,6 +1,5 @@
 from torch.utils.data import IterableDataset
 from Bio import SeqIO
-import re
 import gzip
 
 class FastqIterableDataset(IterableDataset):
