@@ -64,8 +64,6 @@ class emb_CNN_classifier(nn.Module):
         x = self.fc(x)  # (batch_size, 6)
         
         return x
-
-
 class emb_CNN_classifier_16f(nn.Module):
     def __init__(self, num_classes=6):
         super(emb_CNN_classifier_16f, self).__init__()
@@ -91,7 +89,6 @@ class emb_CNN_classifier_16f(nn.Module):
         x = self.fc(x)                       # (batch_size, num_classes)
 
         return x
-
 class BertMeanPoolClassifier(nn.Module):
     def __init__(self, hidden_size=768, num_classes=6):
         super().__init__()
