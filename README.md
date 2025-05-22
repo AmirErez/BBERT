@@ -1,18 +1,18 @@
 ﻿# BERT-DNA-classification
 ## 1. Environment.  
      1.1.  Create BBERT environment from .yml file:
-    ```bash
-    conda env create -f BBERT_env.yml --yes  
-    ```
+```bash
+conda env create -f BBERT_env.yml --yes  
+```
     or  
-    ```bash
-        conda create -n BBERT python=3.10  
-        conda activate BBERT  
-        conda install pytorch torchvision torchaudio pytorch-cuda=12.4 -c pytorch -c nvidia  
-        conda install -c conda-forge transformers=4.30.2  
-        conda install seaborn  
-        conda install scikit-learn  
-    ```
+```bash
+   conda create -n BBERT python=3.10  
+   conda activate BBERT  
+   conda install pytorch torchvision torchaudio pytorch-cuda=12.4 -c pytorch -c nvidia  
+   conda install -c conda-forge transformers=4.30.2  
+   conda install seaborn  
+   conda install scikit-learn  
+```
     1.2.  Activate env and check the installation using script like that (sbatch):  
 
     ```bash  
