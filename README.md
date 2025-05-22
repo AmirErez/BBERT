@@ -1,10 +1,10 @@
 ﻿# BERT-DNA-classification
 ## 1. Environment.  
-     1.1.  Create BBERT environment from .yml file:
+1.1.  Create BBERT environment from .yml file:
 ```bash
 conda env create -f BBERT_env.yml --yes  
 ```
-    or  
+or  
 ```bash
    conda create -n BBERT python=3.10  
    conda activate BBERT  
@@ -13,20 +13,20 @@ conda env create -f BBERT_env.yml --yes
    conda install seaborn  
    conda install scikit-learn  
 ```
-    1.2.  Activate env and check the installation using script like that (sbatch):  
+1.2.  Activate env and check the installation using script like that (sbatch):  
 
-    ```bash  
-        #!/bin/bash  
-        #SBATCH --output=BBERT_venv_ckeck_%A.txt  
-        #SBATCH --gres=gpu:1  
-        #SBATCH --time=01:00:00  
-        #SBATCH --mem=8G  
-        echo "Checking CUDA availability for PyTorch and TensorFlow..."  
-        python3 - <<END  
-        import torch  
-        print("PyTorch CUDA available:", torch.cuda.is_available())  
-        END  
-    ```
+```bash  
+   #!/bin/bash  
+   #SBATCH --output=BBERT_venv_ckeck_%A.txt  
+   #SBATCH --gres=gpu:1  
+   #SBATCH --time=01:00:00  
+   #SBATCH --mem=8G  
+   echo "Checking CUDA availability for PyTorch and TensorFlow..."  
+   python3 - <<END  
+   import torch  
+   print("PyTorch CUDA available:", torch.cuda.is_available())  
+   END  
+```
 
 ## 2. Training.  
     Script:  `/source/train_cont.py`  
