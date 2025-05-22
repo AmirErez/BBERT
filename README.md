@@ -83,8 +83,8 @@ Ncbi -> .fna files -> iss pricessing -> fastq files -> conversion to .fasta:
 - filtering out .fna wich genus intersects with Bertax trining datasets.  
 - downloading zip -> extracting .fna  
 - using 'iss generate' tool to generate .fastq files  
-- converting .fastq to .fasta and tgimming reads to 100 bases  
-
+- converting .fastq to .fasta and trimming reads to 100 bases
+  
 ### 7.2. Datasets generation
 Script:  `/source/gen_datasets_R1_R2.py`
 Generation of 20 datasets, each containing 50 bact and 50 euk samples from generated .fasta files, with a 50/50 bact/euk ratio and a lognormal distribution.  
