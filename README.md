@@ -35,34 +35,31 @@ or
     - If loading the model from a checkpoint, also specify the model name, batch size, and number of epochs (if needed).  
 
 ## 3. Scoring.
-    # `score.py` — Scoring Script for Sequence Files
+ `score.py` — Scoring Script for Sequence Files
 
-    This script processes a biological sequence file (FASTA, FASTQ, or GZIP-compressed) using a specified model to compute scores for each read or sequence. The results are saved in a CSV file. It supports batch processing and optional verbose logging.
+This script processes a biological sequence file (FASTA, FASTQ, or GZIP-compressed) using a specified model to compute scores for each read or sequence. The results are saved in a CSV file. It supports batch processing and optional verbose logging.
 
-    ---
+---
 
-    ## Usage
+### Usage
 
-    ```bash
-    python score.py <model_path> <file_path> <scores_filename> [--batch_size BATCH_SIZE] [--verbose]
+```bash
+   python score.py <model_path> <file_path> <scores_filename> [--batch_size BATCH_SIZE] [--verbose]
+```
+This script runs scoring on a DNA/RNA input file in FASTA, FASTQ, or GZIP-compressed format using a specified model. It outputs the computed scores to a CSV file.
+The scoring process can be optionally run in verbose (debug) mode and supports configurable batch processing.
+Script:  `/source/score.py $input_file.fasta $output_file.csv $model_path`  
 
-    This script runs scoring on a DNA/RNA input file in FASTA, FASTQ, or GZIP-compressed format using a specified model. It outputs the computed scores to a CSV file.
-    The scoring process can be optionally run in verbose (debug) mode and supports configurable batch processing.
-    Script:  `/source/score.py $input_file.fasta $output_file.csv $model_path`  
-    
-    Positional Arguments
-    model_path (str): Path to the trained model directory or checkpoint used for scoring.
+Positional Arguments
+model_path (str): Path to the trained model directory or checkpoint used for scoring.
+file_path (str): Path to the input sequence file. The file can be in .fasta, .fastq, or .gz format.
+scores_filename (str): Path to the output CSV file where computed scores will be saved.
 
-    file_path (str): Path to the input sequence file. The file can be in .fasta, .fastq, or .gz format.
+Optional Arguments
+--batch_size (int, default: 1024): Number of sequences to process per batch. Increasing this may speed up processing but requires more memory.
+--verbose (flag): If set, enables verbose logging with debug-level information. Useful for monitoring detailed processing steps.
 
-    scores_filename (str): Path to the output CSV file where computed scores will be saved.
-
-    Optional Arguments
-    --batch_size (int, default: 1024): Number of sequences to process per batch. Increasing this may speed up processing but requires more memory.
-
-    --verbose (flag): If set, enables verbose logging with debug-level information. Useful for monitoring detailed processing steps.
-
-4. Labeling scores.  
+## 4. Labeling scores.  
     Script:  `/source/label_scores_R1_R2.py`    
     Input:  R1.fasta, R2.fasta, labels.csv  
     Output  - .csv file:  
