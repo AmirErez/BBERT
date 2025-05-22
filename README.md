@@ -29,7 +29,7 @@ or
 ```
 
 ## 2. Training.  
-Script:  `/source/train_cont.py`  
+Script:  `/source/train.py`  
 To start the training process:  
 - If training the model from scratch, set all base parameters.  
 - If loading the model from a checkpoint, also specify the model name, batch size, and number of epochs (if needed).  
