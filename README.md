@@ -29,10 +29,10 @@ or
 ```
 
 ## 2. Training.  
-    Script:  `/source/train_cont.py`  
-    To start the training process:  
-    - If training the model from scratch, set all base parameters.  
-    - If loading the model from a checkpoint, also specify the model name, batch size, and number of epochs (if needed).  
+Script:  `/source/train_cont.py`  
+To start the training process:  
+- If training the model from scratch, set all base parameters.  
+- If loading the model from a checkpoint, also specify the model name, batch size, and number of epochs (if needed).  
 
 ## 3. Scoring.
  `score.py` — Scoring Script for Sequence Files
@@ -51,13 +51,13 @@ The scoring process can be optionally run in verbose (debug) mode and supports c
 Script:  `/source/score.py $input_file.fasta $output_file.csv $model_path`  
 
 Positional Arguments
-model_path (str): Path to the trained model directory or checkpoint used for scoring.
-file_path (str): Path to the input sequence file. The file can be in .fasta, .fastq, or .gz format.
-scores_filename (str): Path to the output CSV file where computed scores will be saved.
+`model_path (str)` - Path to the trained model directory or checkpoint used for scoring.
+`file_path (str)` - Path to the input sequence file. The file can be in .fasta, .fastq, or .gz format.
+`scores_filename (str)` = Path to the output CSV file where computed scores will be saved.
 
 Optional Arguments
---batch_size (int, default: 1024): Number of sequences to process per batch. Increasing this may speed up processing but requires more memory.
---verbose (flag): If set, enables verbose logging with debug-level information. Useful for monitoring detailed processing steps.
+`--batch_size (int, default: 1024)` - Number of sequences to process per batch. Increasing this may speed up processing but requires more memory.
+`--verbose (flag)` - If set, enables verbose logging with debug-level information. Useful for monitoring detailed processing steps.
 
 ## 4. Labeling scores.  
     Script:  `/source/label_scores_R1_R2.py`    
