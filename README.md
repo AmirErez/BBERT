@@ -1,6 +1,6 @@
 ﻿# BERT-DNA-classification
 ## 1. Environment.  
-1.1.  Create BBERT environment from .yml file:
+### 1.1.  Create BBERT environment from .yml file:
 ```bash
 conda env create -f BBERT_env.yml --yes  
 ```
@@ -13,7 +13,7 @@ or
    conda install seaborn  
    conda install scikit-learn  
 ```
-1.2.  Activate env and check the installation using script like that (sbatch):  
+### 1.2.  Activate env and check the installation using script like that (sbatch):  
 
 ```bash  
    #!/bin/bash  
