@@ -76,7 +76,8 @@ Script:  `/source/bertax_comparison.py`
 Comparison of classification performance between BBERT and BERTax on a set of testing datasets.  
 
 ## 7. Test datasets preparation.
-### 7.1.  Script: `/source/ncbi-fna-iss-fastq-fasta.py`  
+### 7.1. Downloading and preprocessing
+Script: `/source/ncbi-fna-iss-fastq-fasta.py`  
 Ncbi -> .fna files -> iss pricessing -> fastq files -> conversion to .fasta:  
 - obtaining a list of relevant bacterial and eukaryotic .fna files from NCBI.  
 - filtering out .fna wich genus intersects with Bertax trining datasets.  
@@ -84,5 +85,6 @@ Ncbi -> .fna files -> iss pricessing -> fastq files -> conversion to .fasta:
 - using 'iss generate' tool to generate .fastq files  
 - converting .fastq to .fasta and tgimming reads to 100 bases  
 
-### 7.2.  Script:  `/source/gen_datasets_R1_R2.py`
+### 7.2. Datasets generation
+Script:  `/source/gen_datasets_R1_R2.py`
 Generation of 20 datasets, each containing 50 bact and 50 euk samples from generated .fasta files, with a 50/50 bact/euk ratio and a lognormal distribution.  
