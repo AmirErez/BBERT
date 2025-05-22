@@ -51,21 +51,20 @@ The scoring process can be optionally run in verbose (debug) mode and supports c
 Script:  `/source/score.py $input_file.fasta $output_file.csv $model_path`  
 
 Positional Arguments
-`model_path (str)` - Path to the trained model directory or checkpoint used for scoring.
-`file_path (str)` - Path to the input sequence file. The file can be in .fasta, .fastq, or .gz format.
-`scores_filename (str)` = Path to the output CSV file where computed scores will be saved.
+- `model_path (str)` - Path to the trained model directory or checkpoint used for scoring.
+- `file_path (str)` - Path to the input sequence file. The file can be in .fasta, .fastq, or .gz format.
+- `scores_filename (str)` = Path to the output CSV file where computed scores will be saved.
 
 Optional Arguments
 `--batch_size (int, default: 1024)` - Number of sequences to process per batch. Increasing this may speed up processing but requires more memory.
 `--verbose (flag)` - If set, enables verbose logging with debug-level information. Useful for monitoring detailed processing steps.
 
 ## 4. Labeling scores.  
-    Script:  `/source/label_scores_R1_R2.py`    
-    Input:  R1.fasta, R2.fasta, labels.csv  
-    Output  - .csv file:  
-    - 'base_id'   - read id (without /1 and /2 suffix)  
-    - 'bact'      - true bacteria label  
-    - 'score'     - mean score for two reads from R1.fasta and R2.fasta  
+Script:  `/source/label_scores_R1_R2.py <R1.fasta> <R2.fasta> <labels.csv>
+Output  - .csv file:  
+- 'base_id'   - read id (without /1 and /2 suffix)  
+- 'bact'      - true bacteria label  
+- 'score'     - mean score for two reads from R1.fasta and R2.fasta  
 
 5. Cut point calculation.  
     Script:  `/source/cut_point_calc_mult.py`  
