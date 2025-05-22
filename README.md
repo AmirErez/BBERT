@@ -60,29 +60,29 @@ Optional Arguments
 `--verbose (flag)` - If set, enables verbose logging with debug-level information. Useful for monitoring detailed processing steps.
 
 ## 4. Labeling scores.  
-Script:  `/source/label_scores_R1_R2.py <R1.fasta> <R2.fasta> <labels.csv>
-Output  - .csv file:  
-- 'base_id'   - read id (without /1 and /2 suffix)  
-- 'bact'      - true bacteria label  
-- 'score'     - mean score for two reads from R1.fasta and R2.fasta  
+Script:  `/source/label_scores_R1_R2.py <R1.fasta> <R2.fasta> <labels.csv>`
+Output  .csv file:  
+- `base_id`   - read id (without /1 and /2 suffix)  
+- `bact`      - true bacteria label  
+- `score`     - mean score for two reads from R1.fasta and R2.fasta  
 
-5. Cut point calculation.  
-    Script:  `/source/cut_point_calc_mult.py`  
-    Calculating the cut points and accuracy for a set of labeled scores.  
-    Plotting the results.  
+## 5. Cut point calculation.  
+Script:  `/source/cut_point_calc_mult.py`  
+Calculating the cut points and accuracy for a set of labeled scores.  
+Plotting the results.  
 
-6. Benchmarks.  
-    Script:  `/source/bertax_comparison.py`  
-    Comparison of classification performance between BBERT and BERTax on a set of testing datasets.  
+## 6. Benchmarks.  
+Script:  `/source/bertax_comparison.py`  
+Comparison of classification performance between BBERT and BERTax on a set of testing datasets.  
 
-7. Test datasets preparation.
-    7.1.  Script: `/source/ncbi-fna-iss-fastq-fasta.py`  
-    Ncbi -> .fna files -> iss pricessing -> fastq files -> conversion to .fasta:  
-    - obtaining a list of relevant bacterial and eukaryotic .fna files from NCBI.  
-    - filtering out .fna wich genus intersects with Bertax trining datasets.  
-    - downloading zip -> extracting .fna  
-    - using 'iss generate' tool to generate .fastq files  
-    - converting .fastq to .fasta and tgimming reads to 100 bases  
+## 7. Test datasets preparation.
+### 7.1.  Script: `/source/ncbi-fna-iss-fastq-fasta.py`  
+Ncbi -> .fna files -> iss pricessing -> fastq files -> conversion to .fasta:  
+- obtaining a list of relevant bacterial and eukaryotic .fna files from NCBI.  
+- filtering out .fna wich genus intersects with Bertax trining datasets.  
+- downloading zip -> extracting .fna  
+- using 'iss generate' tool to generate .fastq files  
+- converting .fastq to .fasta and tgimming reads to 100 bases  
 
-    7.2.  Script:  `/source/gen_datasets_R1_R2.py`
-    Generation of 20 datasets, each containing 50 bact and 50 euk samples from generated .fasta files, with a 50/50 bact/euk ratio and a lognormal distribution.  
+### 7.2.  Script:  `/source/gen_datasets_R1_R2.py`
+Generation of 20 datasets, each containing 50 bact and 50 euk samples from generated .fasta files, with a 50/50 bact/euk ratio and a lognormal distribution.  
