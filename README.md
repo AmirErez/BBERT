@@ -1,6 +1,6 @@
 ﻿# BERT-DNA-classification
-1. Environment.  
-    1.1.  Create BBERT environment from .yml file:
+## 1. Environment.  
+    ### 1.1.  Create BBERT environment from .yml file:
     ```bash
     conda env create -f BBERT_env.yml --yes  
     ```
@@ -13,7 +13,7 @@
         conda install seaborn  
         conda install scikit-learn  
     ```
-    1.2.  Activate env and check the installation using script like that (sbatch):  
+    ### 1.2.  Activate env and check the installation using script like that (sbatch):  
 
     ```bash  
         #!/bin/bash  
@@ -28,13 +28,13 @@
         END  
     ```
 
-2. Training.  
+## 2. Training.  
     Script:  `/source/train_cont.py`  
     To start the training process:  
     - If training the model from scratch, set all base parameters.  
     - If loading the model from a checkpoint, also specify the model name, batch size, and number of epochs (if needed).  
 
-3. Scoring.
+## 3. Scoring.
     # `score.py` — Scoring Script for Sequence Files
 
     This script processes a biological sequence file (FASTA, FASTQ, or GZIP-compressed) using a specified model to compute scores for each read or sequence. The results are saved in a CSV file. It supports batch processing and optional verbose logging.
