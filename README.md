@@ -63,6 +63,7 @@ python inference.py \
     --output_dir /path/to/output \
     --batch_size 1024 \
     --emb_out
+```
 
 ## 4. Labeling scores.  
 Script:  `/source/label_scores_R1_R2.py <R1.fasta> <R2.fasta> <labels.csv>`
