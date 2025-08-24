@@ -1,0 +1,214 @@
+{
+  "version": "1.0",
+  "truncation": {
+    "direction": "Right",
+    "max_length": 102,
+    "strategy": "LongestFirst",
+    "stride": 0
+  },
+  "padding": {
+    "strategy": {
+      "Fixed": 102
+    },
+    "direction": "Right",
+    "pad_to_multiple_of": null,
+    "pad_id": 3,
+    "pad_type_id": 0,
+    "pad_token": "<pad>"
+  },
+  "added_tokens": [
+    {
+      "id": 0,
+      "content": "<s>",
+      "single_word": false,
+      "lstrip": false,
+      "rstrip": false,
+      "normalized": false,
+      "special": true
+    },
+    {
+      "id": 1,
+      "content": "</s>",
+      "single_word": false,
+      "lstrip": false,
+      "rstrip": false,
+      "normalized": false,
+      "special": true
+    },
+    {
+      "id": 2,
+      "content": "<unk>",
+      "single_word": false,
+      "lstrip": false,
+      "rstrip": false,
+      "normalized": false,
+      "special": true
+    },
+    {
+      "id": 3,
+      "content": "<pad>",
+      "single_word": false,
+      "lstrip": false,
+      "rstrip": false,
+      "normalized": false,
+      "special": true
+    },
+    {
+      "id": 4,
+      "content": "<cls>",
+      "single_word": false,
+      "lstrip": false,
+      "rstrip": false,
+      "normalized": false,
+      "special": true
+    },
+    {
+      "id": 5,
+      "content": "<sep>",
+      "single_word": false,
+      "lstrip": false,
+      "rstrip": false,
+      "normalized": false,
+      "special": true
+    },
+    {
+      "id": 6,
+      "content": "<msk>",
+      "single_word": false,
+      "lstrip": false,
+      "rstrip": false,
+      "normalized": false,
+      "special": true
+    },
+    {
+      "id": 7,
+      "content": "T",
+      "single_word": false,
+      "lstrip": false,
+      "rstrip": false,
+      "normalized": true,
+      "special": false
+    },
+    {
+      "id": 8,
+      "content": "C",
+      "single_word": false,
+      "lstrip": false,
+      "rstrip": false,
+      "normalized": true,
+      "special": false
+    },
+    {
+      "id": 9,
+      "content": "A",
+      "single_word": false,
+      "lstrip": false,
+      "rstrip": false,
+      "normalized": true,
+      "special": false
+    },
+    {
+      "id": 10,
+      "content": "G",
+      "single_word": false,
+      "lstrip": false,
+      "rstrip": false,
+      "normalized": true,
+      "special": false
+    },
+    {
+      "id": 11,
+      "content": "N",
+      "single_word": false,
+      "lstrip": false,
+      "rstrip": false,
+      "normalized": true,
+      "special": false
+    }
+  ],
+  "normalizer": null,
+  "pre_tokenizer": {
+    "type": "Whitespace"
+  },
+  "post_processor": {
+    "type": "TemplateProcessing",
+    "single": [
+      {
+        "SpecialToken": {
+          "id": "<cls>",
+          "type_id": 0
+        }
+      },
+      {
+        "Sequence": {
+          "id": "A",
+          "type_id": 0
+        }
+      },
+      {
+        "SpecialToken": {
+          "id": "<sep>",
+          "type_id": 0
+        }
+      }
+    ],
+    "pair": [
+      {
+        "SpecialToken": {
+          "id": "<cls>",
+          "type_id": 0
+        }
+      },
+      {
+        "Sequence": {
+          "id": "A",
+          "type_id": 0
+        }
+      },
+      {
+        "SpecialToken": {
+          "id": "<sep>",
+          "type_id": 0
+        }
+      },
+      {
+        "Sequence": {
+          "id": "B",
+          "type_id": 1
+        }
+      },
+      {
+        "SpecialToken": {
+          "id": "<sep>",
+          "type_id": 1
+        }
+      }
+    ],
+    "special_tokens": {
+      "<cls>": {
+        "id": "<cls>",
+        "ids": [
+          4
+        ],
+        "tokens": [
+          "<cls>"
+        ]
+      },
+      "<sep>": {
+        "id": "<sep>",
+        "ids": [
+          5
+        ],
+        "tokens": [
+          "<sep>"
+        ]
+      }
+    }
+  },
+  "decoder": null,
+  "model": {
+    "type": "WordLevel",
+    "vocab": {},
+    "unk_token": "<unk>"
+  }
+}

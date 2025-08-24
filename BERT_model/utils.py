@@ -1,24 +1,48 @@
-
 import psutil
 import torch
 from pynvml import nvmlInit, nvmlDeviceGetHandleByIndex, nvmlDeviceGetMemoryInfo, nvmlDeviceGetUtilizationRates
-import gc
+import os
 import logging
 import io
 nvmlInit()
+import gc
 
-def setup_logger(verbose: bool = False) -> logging.Logger:
+# Global singleton logger
+LOGGER = None
+
+def setup_logger(verbose: bool = False, log_file: str = None) -> logging.Logger:
+    global LOGGER
+    if LOGGER is not None:
+        return LOGGER
+
     logger = logging.getLogger("train_logger")
     logger.setLevel(logging.DEBUG if verbose else logging.INFO)
-    logger.propagate = False  # Prevent messages from propagating to root logger
+    logger.propagate = False
 
-    if not logger.handlers:  # Only check this logger's handlers
+    formatter = logging.Formatter("[%(asctime)s] %(levelname)s: %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
+
+    # Add console handler once
+    if not any(isinstance(h, logging.StreamHandler) for h in logger.handlers):
         ch = logging.StreamHandler()
         ch.setLevel(logging.DEBUG if verbose else logging.INFO)
-        formatter = logging.Formatter("[%(asctime)s] %(levelname)s: %(message)s", datefmt='%H:%M:%S')
         ch.setFormatter(formatter)
         logger.addHandler(ch)
 
+    # Add file handler if log_file is provided and not already added
+    if log_file and not any(
+        isinstance(h, logging.FileHandler) and getattr(h, 'baseFilename', None) == os.path.abspath(log_file)
+        for h in logger.handlers
+    ):
+        log_dir = os.path.dirname(log_file)
+        if log_dir:
+            os.makedirs(log_dir, exist_ok=True)
+        fh = logging.FileHandler(log_file)
+        fh.setLevel(logging.DEBUG)
+        fh.setFormatter(formatter)
+        logger.addHandler(fh)
+        logger.info(f"Logging to file: {log_file}")
+
+    LOGGER = logger
     return logger
 
 def get_true_label(id):
@@ -38,31 +62,36 @@ def label_to_frame(label:int) -> int:
 def get_frame(id:str) -> int:
     return int(id.split('|')[-1])
     
-def log_resources(msg: str):
-    """Log CPU RAM and GPU usage during training."""
-    # CPU RAM Usage
-    
-    cpu_mem = psutil.virtual_memory().used / 1e9
-    log_msg = msg + f" \tCPU RAM Used: {cpu_mem:.2f} GB"
+def clear_GPU():
+    """Safely clear GPU and CPU memory caches."""
+    torch.cuda.empty_cache()
+    torch.cuda.ipc_collect()
+    gc.collect()
 
-    # GPU Usage
+def get_resources_msg() -> str:
+    """Generate a string reporting current RAM (all processes) and GPU usage."""
+    process = psutil.Process(os.getpid())
+    # Get memory used by this process and all its children
+    mem_total = process.memory_info().rss
+    for child in process.children(recursive=True):
+        try:
+            mem_total += child.memory_info().rss
+        except (psutil.NoSuchProcess, psutil.AccessDenied):
+            continue
+
+    msg = f"Slurm task RAM (RSS): {mem_total / 1e9:.2f} GB"
+
+    # GPU usage
     if torch.cuda.is_available():
         for i in range(torch.cuda.device_count()):
             handle = nvmlDeviceGetHandleByIndex(i)
             gpu_mem = nvmlDeviceGetMemoryInfo(handle)
             gpu_util = nvmlDeviceGetUtilizationRates(handle).gpu
-            log_msg += f" \tGPU {i}: {gpu_mem.used / 1e9:.2f} GB / {gpu_mem.total / 1e9:.2f} GB, Utilization: {gpu_util}%"
-    setup_logger(True).info(log_msg)
+            msg += f" | GPU {i}: {gpu_mem.used / 1e9:.2f} GB / {gpu_mem.total / 1e9:.2f} GB, Util: {gpu_util}%"
 
-def clear_GPU():
-    for obj in list(globals()):
-        if isinstance(globals()[obj], torch.Tensor) and globals()[obj].is_cuda:
-            del globals()[obj]
-    torch.cuda.empty_cache()
-    gc.collect()
+    return msg
     
 def tensor_memory_summary(scope_dict, min_MB=1.0):
-    import torch
 
     summary = []
     total_MB = 0
