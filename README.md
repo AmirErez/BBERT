@@ -34,30 +34,35 @@ To start the training process:
 - If training the model from scratch, set all base parameters.  
 - If loading the model from a checkpoint, also specify the model name, batch size, and number of epochs (if needed).  
 
-## 3. Scoring.
- `score.py` — Scoring Script for Sequence Files
+## 3. Inference.
+ `inference.py` — Scoring Script for Sequence Files
 
-This script processes a biological sequence file (FASTA, FASTQ, or GZIP-compressed) using a specified model to compute scores for each read or sequence. The results are saved in a CSV file. It supports batch processing and optional verbose logging.
+This script runs inference on DNA sequencing data using the BBERT model and multiple downstream classifiers (bacterial classification, frame prediction, coding classification).  
+It processes FASTA/FASTQ/GZIP input files, computes probabilities, loss values, and optionally embeddings, and writes results to Parquet files for downstream analysis.
 
----
+### Features
+- Loads a pretrained BBERT model and three classification heads:
+  - Bacterial classifier (bacteria vs. non-bacteria)
+  - Frame classifier (6 possible reading frames)
+  - Coding classifier (coding vs. non-coding DNA)
+- Supports input formats: `.fasta`, `.fastq`, `.gz`
+- Outputs results to `.parquet` with:
+  - Sequence IDs
+  - Sequence lengths
+  - Cross-entropy loss per read
+  - Predicted probabilities for each classifier
+  - Optional: sequence embeddings (`--emb_out`)
+- Uses **PyArrow** for efficient storage and compression (`zstd`)
+- Supports GPU acceleration and multi-core CPUs (SLURM-friendly)
 
 ### Usage
-
 ```bash
-   python score.py <model_path> <file_path> <scores_filename> [--batch_size BATCH_SIZE] [--verbose]
-```
-This script runs scoring on a DNA/RNA input file in FASTA, FASTQ, or GZIP-compressed format using a specified model. It outputs the computed scores to a CSV file.
-The scoring process can be optionally run in verbose (debug) mode and supports configurable batch processing.
-Script:  `/source/score.py $input_file.fasta $output_file.csv $model_path`  
-
-Positional Arguments
-- `model_path (str)` - Path to the trained model directory or checkpoint used for scoring.
-- `file_path (str)` - Path to the input sequence file. The file can be in .fasta, .fastq, or .gz format.
-- `scores_filename (str)` = Path to the output CSV file where computed scores will be saved.
-
-Optional Arguments
-`--batch_size (int, default: 1024)` - Number of sequences to process per batch. Increasing this may speed up processing but requires more memory.
-`--verbose (flag)` - If set, enables verbose logging with debug-level information. Useful for monitoring detailed processing steps.
+python inference.py \
+    --input_dir /path/to/input \
+    --input_files sample1.fasta sample2.fq.gz \
+    --output_dir /path/to/output \
+    --batch_size 1024 \
+    --emb_out
 
 ## 4. Labeling scores.  
 Script:  `/source/label_scores_R1_R2.py <R1.fasta> <R2.fasta> <labels.csv>`
