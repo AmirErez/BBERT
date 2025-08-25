@@ -1,5 +1,9 @@
 ﻿# BERT-DNA-classification
 ## 1. Environment.  
+First, download this repository,
+```bash
+git clone https://github.com/AmirErez/BBERT.git
+```
 ### 1.1.  Create BBERT environment from .yml file:
 ```bash
 conda env create -f BBERT_env.yml --yes  
