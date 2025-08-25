@@ -40,7 +40,7 @@ To start the training process:
 - If loading the model from a checkpoint, also specify the model name, batch size, and number of epochs (if needed).  
 
 ## 3. Inference.
- `inference.py` — Scoring Script for Sequence Files
+ `source/inference.py` — Scoring Script for Sequence Files
 
 This script runs inference on DNA sequencing data using the BBERT model and multiple downstream classifiers (bacterial classification, frame prediction, coding classification).  
 It processes FASTA/FASTQ/GZIP input files, computes probabilities, loss values, and optionally embeddings, and writes results to Parquet files for downstream analysis.
