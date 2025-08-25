@@ -3,10 +3,11 @@
 First, download this repository,
 ```bash
 git clone https://github.com/AmirErez/BBERT.git
+cd BBERT
 ```
 ### 1.1.  Create BBERT environment from .yml file:
 ```bash
-conda env create -f BBERT_env.yml --yes  
+conda env create -f BBERT_env.yml  
 ```
 or  
 ```bash
