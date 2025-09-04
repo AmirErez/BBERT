@@ -74,14 +74,14 @@ pip install datasets huggingface_hub safetensors tokenizers torchinfo pynvml
 ### 1.3.  Test installation and GPU support
 
 #### GPU acceleration test:
-**For Mac users:**
-```bash
-python -c "import torch; print('PyTorch version:', torch.__version__); print('MPS available:', hasattr(torch.backends, 'mps') and torch.backends.mps.is_available() if hasattr(torch.backends, 'mps') else False); device = 'mps' if hasattr(torch.backends, 'mps') and torch.backends.mps.is_available() else ('cuda' if torch.cuda.is_available() else 'cpu'); print('BBERT will use:', device)"
-```
-
 **For Linux/Windows users:**
 ```bash
 python -c "import torch; print('PyTorch CUDA available:', torch.cuda.is_available())"
+```
+
+**For Mac users:**
+```bash
+python -c "import torch; print('PyTorch version:', torch.__version__); print('MPS available:', hasattr(torch.backends, 'mps') and torch.backends.mps.is_available() if hasattr(torch.backends, 'mps') else False); device = 'mps' if hasattr(torch.backends, 'mps') and torch.backends.mps.is_available() else ('cuda' if torch.cuda.is_available() else 'cpu'); print('BBERT will use:', device)"
 ```
 
 #### Test with example data:
@@ -91,7 +91,7 @@ python source/inference.py --input_dir example --input_files example.fasta --out
 
 **Expected output on Mac:**
 - `Using Apple MPS (Metal Performance Shaders)` - if you have Apple Silicon
-- `Using CPU (no GPU acceleration available)` - if you have Intel Mac
+- `Using CPU (no GPU acceleration available)` - Uses CPU instead
 
 The output will be in `example_scores_len.parquet`. View results:
 ```python
