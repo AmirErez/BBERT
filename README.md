@@ -6,7 +6,7 @@ BBERT is a BERT-based transformer model fine-tuned for DNA sequence analysis, sp
 - **Reading Frame Prediction**: Identifies the correct reading frame (1 of 6 possible frames)
 - **Coding Sequence Classification**: Determines whether sequences are protein-coding or non-coding
 
-The model processes DNA sequences and outputs classification probabilities along with sequence embeddings for downstream analysis.
+The model processes short DNA sequences (100bp or longer) and outputs classification probabilities along with sequence embeddings for downstream analysis.
 
 ## System Requirements
 
