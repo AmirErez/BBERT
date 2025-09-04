@@ -259,3 +259,29 @@ Both post-processing scripts produce consistent TSV.GZ files:
 
 **Short scores file** (`*_good_short_scores.tsv.gz`):
 Contains metadata for reads/pairs excluded due to length filtering.
+
+## 5. Testing BBERT Accuracy
+
+Test BBERT's classification performance using known ground truth sequences:
+
+```bash
+# Run accuracy tests
+python tests/test_inference_accuracy.py
+```
+
+**Test data:** `example/example.fasta` contains 10 sequences:
+- Sequences 1-5: *E. coli* K-12 (should classify as bacterial, bact_prob > 0.5)
+- Sequences 6-10: *Saccharomyces cerevisiae* (should classify as non-bacterial, bact_prob < 0.5)
+
+**Expected results:**
+- **Perfect classification**: All 10 sequences correctly classified using 0.5 threshold
+- *E. coli* mean bacterial probability > 0.5
+- *S. cerevisiae* mean bacterial probability < 0.5
+
+**What the test validates:**
+- ✅ Model predictions are accurate for known organisms
+- ✅ Probabilities are in valid ranges [0,1]  
+- ✅ Output format is consistent
+- ✅ All sequences processed correctly
+
+The test provides detailed output showing individual sequence predictions for model validation.
