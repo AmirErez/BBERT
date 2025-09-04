@@ -11,10 +11,19 @@ The model processes short DNA sequences (100bp or longer) and outputs classifica
 ## System Requirements
 
 - **Python**: 3.10+
-- **GPU**: CUDA-compatible GPU recommended (tested with CUDA 12.4)
-- **Memory**: Minimum 8GB RAM, 4GB+ GPU memory recommended
+- **GPU**: 
+  - CUDA-compatible GPU recommended (tested with CUDA 12.4)
+  - Apple Silicon Macs: MPS acceleration supported
+  - CPU-only: Supported but slower
+- **Memory**: Minimum 8GB RAM, 4GB+ GPU memory recommended  
 - **Storage**: ~2GB for model files (requires Git LFS)
 - **Dependencies**: PyTorch, Transformers, PyArrow, pandas, scikit-learn, seaborn
+
+### Mac Users
+For Apple Silicon Macs, the model will automatically use MPS (Metal Performance Shaders) for acceleration. Install PyTorch with MPS support:
+```bash
+conda install pytorch::pytorch torchvision torchaudio -c pytorch
+```
 
 ## 1. Installation.  
 ### 1.1. Download
@@ -33,38 +42,62 @@ git lfs pull # Downloads the model
 #### Option 2: From Zenodo
 TBA
 
-### 1.2.  Create BBERT environment from .yml file:
+### 1.2.  Create BBERT environment:
+
+#### For Linux/Windows with CUDA:
 ```bash
 conda env create -f BBERT_env.yml  
 ```
-or  
+
+#### For Mac (recommended):
 ```bash
-   conda create -n BBERT python=3.10  
-   conda activate BBERT  
-   conda install pytorch torchvision torchaudio pytorch-cuda=12.4 -c pytorch -c nvidia  
-   conda install -c conda-forge transformers=4.30.2  
-   conda install seaborn  
-   conda install scikit-learn  
+conda env create -f BBERT_env_mac.yml
+conda activate BBERT_mac
 ```
-### 1.3.  Activate env and check the installation 
 
-#### Option 1: From the python command line
-Run the following in python, in the BBERT environment:
-
-```python
-   import torch  
-   print("PyTorch CUDA available:", torch.cuda.is_available()) 
-```
-then run on the example file
+#### Manual installation for Mac/CPU-only systems:
 ```bash
-   python source/inference.py --input_dir ../example --input_files example.fasta --output_dir ../example --batch_size 1024 
-```
-The output will be in the file ../example/example_scores_len.parquet
+conda create -n BBERT python=3.10  
+conda activate BBERT  
 
-You can read it using python pandas,
+# Core PyTorch (Mac with Apple Silicon gets MPS acceleration automatically)
+conda install pytorch torchvision torchaudio -c pytorch
+
+# Core dependencies
+conda install -c conda-forge transformers=4.30.2 pyarrow pandas scikit-learn seaborn tqdm pyyaml
+conda install biopython psutil
+conda install "numpy<2"  # Fix compatibility issues
+
+# Additional packages
+pip install datasets huggingface_hub safetensors tokenizers torchinfo pynvml
+```
+### 1.3.  Test installation and GPU support
+
+#### GPU acceleration test:
+**For Mac users:**
+```bash
+python -c "import torch; print('PyTorch version:', torch.__version__); print('MPS available:', hasattr(torch.backends, 'mps') and torch.backends.mps.is_available() if hasattr(torch.backends, 'mps') else False); device = 'mps' if hasattr(torch.backends, 'mps') and torch.backends.mps.is_available() else ('cuda' if torch.cuda.is_available() else 'cpu'); print('BBERT will use:', device)"
+```
+
+**For Linux/Windows users:**
+```bash
+python -c "import torch; print('PyTorch CUDA available:', torch.cuda.is_available())"
+```
+
+#### Test with example data:
+```bash
+python source/inference.py --input_dir example --input_files example.fasta --output_dir ./ --batch_size 64 
+```
+
+**Expected output on Mac:**
+- `Using Apple MPS (Metal Performance Shaders)` - if you have Apple Silicon
+- `Using CPU (no GPU acceleration available)` - if you have Intel Mac
+
+The output will be in `example_scores_len.parquet`. View results:
 ```python
-   import pandas as pd
-   df = pd.read_parquet('../example/example_scores_len.parquet')
+import pandas as pd
+df = pd.read_parquet('example_scores_len.parquet')
+print(df.head())
 ```
 #### Option 2: From a job manager
 Here is an example how to execute the script on a gpu node in our SLURM setup.
@@ -121,39 +154,29 @@ python source/inference.py \
 - `--batch_size`: Batch size for processing (default: 1024)
 - `--emb_out`: Include sequence embeddings in output (optional, warning: slow and large files)
 
-## 3. Labeling scores.  
-Script:  `/source/label_scores_R1_R2.py <R1.fasta> <R2.fasta> <labels.csv>`
-Output  .csv file:  
-- `base_id`   - read id (without /1 and /2 suffix)  
-- `bact`      - true bacteria label  
-- `score`     - mean score for two reads from R1.fasta and R2.fasta  
+## 3. Output Format
 
-## 4. Cut point calculation.  
-Script:  `/source/cut_point_calc_mult.py`  
-Calculating the cut points and accuracy for a set of labeled scores.  
-Plotting the results.  
+The inference script outputs results to a Parquet file containing:
 
-## 5. Benchmarks.  
-Script:  `/source/bertax_comparison.py`  
-Comparison of classification performance between BBERT and BERTax on a set of testing datasets.  
+| Column | Description |
+|--------|-------------|
+| `id` | Sequence identifier |
+| `len` | Sequence length |
+| `loss` | Cross-entropy loss value |
+| `bact_prob` | Bacterial classification probability (0-1) |
+| `frame_prob` | Reading frame probabilities (array of 6 values for frames +1,+2,+3,-1,-2,-3) |
+| `coding_prob` | Coding sequence probability (0-1) |
 
-## 6. Test datasets preparation.
-### 6.1. Downloading and preprocessing
-Script: `/source/ncbi-fna-iss-fastq-fasta.py`  
-NCBI -> .fna files -> ISS processing -> fastq files -> conversion to .fasta:  
-- obtaining a list of relevant bacterial and eukaryotic .fna files from NCBI.  
-- filtering out .fna which genus intersects with BERTax training datasets.  
-- downloading zip -> extracting .fna  
-- using 'iss generate' tool to generate .fastq files  
-- converting .fastq to .fasta and trimming reads to 100 bases
-  
-### 6.2. Datasets generation
-Script:  `/source/gen_datasets_R1_R2.py`
-Generation of 20 datasets, each containing 50 bact and 50 euk samples from generated .fasta files, with a 50/50 bact/euk ratio and a lognormal distribution.  
+### Reading Results
+```python
+import pandas as pd
+df = pd.read_parquet('example_scores_len.parquet')
+print(df.head())
 
+# Get sequences predicted as bacterial (>50% probability)
+bacterial_seqs = df[df['bact_prob'] > 0.5]
 
-## 7. Training.  
-Script:  `/source/train.py`  
-To start the training process:  
-- If training the model from scratch, set all base parameters.  
-- If loading the model from a checkpoint, also specify the model name, batch size, and number of epochs (if needed).  
+# Get most likely reading frame for each sequence
+import numpy as np
+df['predicted_frame'] = df['frame_prob'].apply(lambda x: np.argmax(x))
+```

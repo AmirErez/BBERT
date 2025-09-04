@@ -1,0 +1,34 @@
+name: BBERT_mac
+channels:
+  - pytorch
+  - conda-forge
+  - bioconda
+  - defaults
+dependencies:
+  - python=3.10
+  # Core PyTorch stack (Mac/MPS compatible)
+  - pytorch
+  - torchvision  
+  - torchaudio
+  # ML and data science
+  - transformers=4.30.2
+  - pyarrow
+  - pandas
+  - scikit-learn
+  - seaborn
+  - tqdm
+  - pyyaml
+  - biopython
+  - psutil
+  # Additional scientific computing
+  - numpy<2  # Fix NumPy compatibility issue
+  # Python package installer
+  - pip
+  # Install remaining packages via pip
+  - pip:
+      - datasets
+      - huggingface_hub  
+      - safetensors
+      - tokenizers
+      - torchinfo
+      - pynvml  # Optional, for compatibility (will be ignored on Mac)

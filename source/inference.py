@@ -26,7 +26,12 @@ from emb_class_frame.architecture import BertClassifier
 os.environ["WANDB_DISABLED"] = "true"
 
 slurm_cpus = int(os.environ.get("SLURM_CPUS_PER_TASK", 1))
-num_workers = max(1, min(slurm_cpus, mp.cpu_count()) - 1)
+# Mac has multiprocessing issues with DataLoader, use single worker
+import platform
+if platform.system() == "Darwin":  # macOS
+    num_workers = 0
+else:
+    num_workers = max(1, min(slurm_cpus, mp.cpu_count()) - 1)
 prefetch_factor = 2
 
 data_len = None
@@ -83,12 +88,20 @@ if __name__ == "__main__":
     num_cpus = mp.cpu_count()
     logger.info(f"CPUs allocated by SLURM: {slurm_cpus}, workers_num = {num_workers}")
 
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    if device.type == 'cuda':
+    # Device selection with Mac MPS support
+    if torch.cuda.is_available():
+        device = torch.device('cuda')
         gpu_name = torch.cuda.get_device_name(torch.cuda.current_device())
-        logger.info(f"Using GPU: {gpu_name}")
+        logger.info(f"Using CUDA GPU: {gpu_name}")
+        use_half_precision = True
+    elif hasattr(torch.backends, 'mps') and torch.backends.mps.is_available():
+        device = torch.device('mps')
+        logger.info("Using Apple MPS (Metal Performance Shaders)")
+        use_half_precision = False  # MPS doesn't support float16 well
     else:
-        logger.info("Using CPU (no CUDA available)")
+        device = torch.device('cpu')
+        logger.info("Using CPU (no GPU acceleration available)")
+        use_half_precision = False  # CPU doesn't support float16 efficiently
     
     ## BBERT tokenizer and model
     tokenizer_path = bbert_model_path
@@ -96,27 +109,39 @@ if __name__ == "__main__":
     collate_fn_instance = CollateFnWithTokenizer(tokenizer)
     
     bbert_model = BertForMaskedLM.from_pretrained(bbert_model_path, local_files_only=True)
-    bbert_model.eval().half().to(device)
+    bbert_model.eval()
+    if use_half_precision:
+        bbert_model.half()
+    bbert_model.to(device)
     logger.info(f"BBERT model loaded from {bbert_model_path}")
 
     bact_classifier = BertClassifier(hidden_size, bact_classes)
     bact_checkpoint = torch.load(bact_class_model_path, weights_only=True, map_location=device)
     bact_classifier.load_state_dict(bact_checkpoint['model_state_dict'])
-    bact_classifier.eval().half().to(device)
+    bact_classifier.eval()
+    if use_half_precision:
+        bact_classifier.half()
+    bact_classifier.to(device)
     logger.info(f"Bacterial classifier model loaded from {bact_class_model_path}")
     
     ## frame classifier model
     frame_classifier = BertClassifier(hidden_size, frame_classes)
     frame_checkpoint = torch.load(frame_class_model_path, weights_only=True, map_location=device)
     frame_classifier.load_state_dict(frame_checkpoint['model_state_dict'])
-    frame_classifier.eval().half().to(device)
+    frame_classifier.eval()
+    if use_half_precision:
+        frame_classifier.half()
+    frame_classifier.to(device)
     logger.info(f"Frame classifier model loaded from {frame_class_model_path}")
     
     ## coding classifier model
     coding_classifier = BertClassifier(hidden_size, coding_classes)
     coding_checkpoint = torch.load(class_model_path, weights_only=True, map_location=device)
     coding_classifier.load_state_dict(coding_checkpoint['model_state_dict'])
-    coding_classifier.eval().half().to(device)
+    coding_classifier.eval()
+    if use_half_precision:
+        coding_classifier.half()
+    coding_classifier.to(device)
     logger.info(f"Coding classifier model loaded from {class_model_path}")
     
     loss_fn = torch.nn.CrossEntropyLoss(reduction='none').to(device)
@@ -137,15 +162,21 @@ if __name__ == "__main__":
         logger.info(f"{len(seq_lens)} reads, {min(seq_lens)} <= len <= {max(seq_lens)}")
         batches_num = data_len//batch_size
         
-        dataloader = DataLoader(
-            dataset,
-            batch_size=batch_size,
-            collate_fn=collate_fn_instance,
-            num_workers=num_workers,            # > 0 recommended
-            pin_memory=True,
-            prefetch_factor=prefetch_factor,
-            persistent_workers=True             # faster epoch starts
-        )
+        # Configure DataLoader parameters based on platform
+        dataloader_kwargs = {
+            'dataset': dataset,
+            'batch_size': batch_size,
+            'collate_fn': collate_fn_instance,
+            'num_workers': num_workers,
+            'pin_memory': True
+        }
+        
+        # Only add multiprocessing parameters if num_workers > 0
+        if num_workers > 0:
+            dataloader_kwargs['prefetch_factor'] = prefetch_factor
+            dataloader_kwargs['persistent_workers'] = True
+            
+        dataloader = DataLoader(**dataloader_kwargs)
         
         batch_num = data_len // batch_size + 1 if data_len % batch_size != 0 else data_len // batch_size
         
@@ -280,8 +311,9 @@ if __name__ == "__main__":
         gc.collect()
         
 clear_GPU()
-torch.cuda.empty_cache()
-torch.cuda.ipc_collect()
+if torch.cuda.is_available():
+    torch.cuda.empty_cache()
+    torch.cuda.ipc_collect()
 gc.collect()
 sys.exit(0)
     

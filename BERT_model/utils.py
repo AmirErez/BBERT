@@ -1,11 +1,17 @@
 import psutil
 import torch
-from pynvml import nvmlInit, nvmlDeviceGetHandleByIndex, nvmlDeviceGetMemoryInfo, nvmlDeviceGetUtilizationRates
 import os
 import logging
 import io
-nvmlInit()
 import gc
+
+# Optional NVIDIA GPU monitoring (not available on Mac)
+try:
+    from pynvml import nvmlInit, nvmlDeviceGetHandleByIndex, nvmlDeviceGetMemoryInfo, nvmlDeviceGetUtilizationRates
+    nvmlInit()
+    PYNVML_AVAILABLE = True
+except ImportError:
+    PYNVML_AVAILABLE = False
 
 # Global singleton logger
 LOGGER = None
@@ -64,8 +70,12 @@ def get_frame(id:str) -> int:
     
 def clear_GPU():
     """Safely clear GPU and CPU memory caches."""
-    torch.cuda.empty_cache()
-    torch.cuda.ipc_collect()
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+        torch.cuda.ipc_collect()
+    elif hasattr(torch.backends, 'mps') and torch.backends.mps.is_available():
+        # MPS doesn't have equivalent cache clearing functions yet
+        pass
     gc.collect()
 
 def get_resources_msg() -> str:
@@ -82,12 +92,14 @@ def get_resources_msg() -> str:
     msg = f"Slurm task RAM (RSS): {mem_total / 1e9:.2f} GB"
 
     # GPU usage
-    if torch.cuda.is_available():
+    if torch.cuda.is_available() and PYNVML_AVAILABLE:
         for i in range(torch.cuda.device_count()):
             handle = nvmlDeviceGetHandleByIndex(i)
             gpu_mem = nvmlDeviceGetMemoryInfo(handle)
             gpu_util = nvmlDeviceGetUtilizationRates(handle).gpu
             msg += f" | GPU {i}: {gpu_mem.used / 1e9:.2f} GB / {gpu_mem.total / 1e9:.2f} GB, Util: {gpu_util}%"
+    elif torch.cuda.is_available():
+        msg += f" | GPU: CUDA available but monitoring unavailable"
 
     return msg
     
