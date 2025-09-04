@@ -1,4 +1,21 @@
-﻿# BERT-DNA-classification
+﻿# BBERT: BERT for Bacterial DNA Classification
+
+BBERT is a BERT-based transformer model fine-tuned for DNA sequence analysis, specifically designed for bacterial sequence classification and genomic feature prediction. The model performs three key classification tasks:
+
+- **Bacterial Classification**: Distinguishes bacterial DNA from non-bacterial sequences
+- **Reading Frame Prediction**: Identifies the correct reading frame (1 of 6 possible frames)
+- **Coding Sequence Classification**: Determines whether sequences are protein-coding or non-coding
+
+The model processes DNA sequences and outputs classification probabilities along with sequence embeddings for downstream analysis.
+
+## System Requirements
+
+- **Python**: 3.10+
+- **GPU**: CUDA-compatible GPU recommended (tested with CUDA 12.4)
+- **Memory**: Minimum 8GB RAM, 4GB+ GPU memory recommended
+- **Storage**: ~2GB for model files (requires Git LFS)
+- **Dependencies**: PyTorch, Transformers, PyArrow, pandas, scikit-learn, seaborn
+
 ## 1. Installation.  
 ### 1.1. Download
 #### Option 1: From github
@@ -40,21 +57,21 @@ Run the following in python, in the BBERT environment:
 ```
 then run on the example file
 ```bash
-   python inference.py --input_dir ../example --input_files example.fasta --output_dir ../example --batch_size 1024 
+   python source/inference.py --input_dir ../example --input_files example.fasta --output_dir ../example --batch_size 1024 
 ```
 The output will be in the file ../example/example_scores_len.parquet
 
 You can read it using python pandas,
 ```python
    import pandas as pd
-   df = pd.read_parquet('../example/scores_len.parquet')
+   df = pd.read_parquet('../example/example_scores_len.parquet')
 ```
 #### Option 2: From a job manager
 Here is an example how to execute the script on a gpu node in our SLURM setup.
 
 ```bash  
    #!/bin/bash  
-   #SBATCH --output=BBERT_venv_ckeck_%A.txt  
+   #SBATCH --output=BBERT_venv_check_%A.txt  
    #SBATCH --gres=gpu:1  
    #SBATCH --time=01:00:00  
    #SBATCH --mem=8G  
@@ -63,7 +80,7 @@ Here is an example how to execute the script on a gpu node in our SLURM setup.
    import torch  
    print("PyTorch CUDA available:", torch.cuda.is_available())  
    END
-   python inference.py --input_dir ../example --input_files example.fasta --output_dir ../example --batch_size 1024   
+   python source/inference.py --input_dir ../example --input_files example.fasta --output_dir ../example --batch_size 1024   
 ```
 You may then examine the output in ../example/scores_len.parquet as described in Option 1 above.
 
@@ -90,12 +107,19 @@ It processes FASTA/FASTQ/GZIP input files, computes probabilities, loss values, 
 
 ### Usage
 ```bash
-python inference.py \
+python source/inference.py \
     --input_dir /path/to/input \
     --input_files sample1.fasta sample2.fq.gz \
     --output_dir /path/to/output \
-    --batch_size 1024 \ 
+    --batch_size 1024
 ```
+
+### Arguments
+- `--input_dir`: Directory where input files are located (required)
+- `--input_files`: List of input filenames to process (required, can specify multiple files)
+- `--output_dir`: Directory to save output Parquet files (required)
+- `--batch_size`: Batch size for processing (default: 1024)
+- `--emb_out`: Include sequence embeddings in output (optional, warning: slow and large files)
 
 ## 3. Labeling scores.  
 Script:  `/source/label_scores_R1_R2.py <R1.fasta> <R2.fasta> <labels.csv>`
@@ -113,12 +137,12 @@ Plotting the results.
 Script:  `/source/bertax_comparison.py`  
 Comparison of classification performance between BBERT and BERTax on a set of testing datasets.  
 
-## 7. Test datasets preparation.
+## 6. Test datasets preparation.
 ### 6.1. Downloading and preprocessing
 Script: `/source/ncbi-fna-iss-fastq-fasta.py`  
-Ncbi -> .fna files -> iss pricessing -> fastq files -> conversion to .fasta:  
+NCBI -> .fna files -> ISS processing -> fastq files -> conversion to .fasta:  
 - obtaining a list of relevant bacterial and eukaryotic .fna files from NCBI.  
-- filtering out .fna wich genus intersects with Bertax trining datasets.  
+- filtering out .fna which genus intersects with BERTax training datasets.  
 - downloading zip -> extracting .fna  
 - using 'iss generate' tool to generate .fastq files  
 - converting .fastq to .fasta and trimming reads to 100 bases
