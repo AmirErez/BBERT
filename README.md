@@ -180,3 +180,82 @@ bacterial_seqs = df[df['bact_prob'] > 0.5]
 import numpy as np
 df['predicted_frame'] = df['frame_prob'].apply(lambda x: np.argmax(x))
 ```
+
+## 4. Post-Processing BBERT Outputs
+
+BBERT inference produces Parquet files with classification scores. Depending on your data type, use the appropriate post-processing script to convert to a consistent TSV format.
+
+### Single-End Data Processing
+
+For single-end sequencing data, convert Parquet to TSV format:
+
+```bash
+python source/convert_scores_to_tsv.py \
+    --input example_scores_len.parquet \
+    --output_dir ./ \
+    --output_prefix example
+```
+
+**Output:**
+- `example_good_long_scores.tsv.gz` - Reads ≥100bp with scores
+- `example_good_short_scores.tsv.gz` - Reads <100bp (excluded from analysis)
+
+### Paired-End Data Processing
+
+For paired-end sequencing data (R1/R2 files), merge scores from both reads:
+
+```bash
+python source/merge_paired_scores.py \
+    --r1 /path/to/SRR8100008-good_1_scores_len.parquet \
+    --r2 /path/to/SRR8100008-good_2_scores_len.parquet \
+    --output_dir /path/to/output \
+    --output_prefix SRR8100008
+```
+
+**Output:**
+- `SRR8100008_good_long_scores.tsv.gz` - Combined scores for read pairs ≥100bp
+- `SRR8100008_good_short_scores.tsv.gz` - Filtered short read pairs
+
+**Score combination logic:**
+- Both R1,R2 ≥100bp: Average their `loss` and `bact_prob`
+- Only one read ≥100bp: Use that read's scores  
+- Both reads <100bp: Exclude from long scores file
+
+### Batch Processing with SLURM
+
+For processing many files, use SLURM array jobs. Choose the appropriate batch script:
+
+**Single-end data conversion:**
+```bash
+# Create accessions.csv with one identifier per line
+echo -e "SRR8100008\nSRR8100009\nSRR8100010" > accessions.csv
+
+# Submit batch job for single-end conversion
+sbatch --array=1-100 scripts/batch_convert_scores.sh accessions.csv /path/to/scores
+```
+
+**Paired-end data merging:**
+```bash
+# Submit batch job for paired-end processing  
+sbatch --array=1-100 scripts/batch_merge_scores.sh accessions.csv /path/to/scores
+```
+
+**Monitor jobs:**
+```bash
+squeue -u $USER
+tail -f logs/convert_scores_JOBID_TASKID.log
+```
+
+### Final Output Format
+
+Both post-processing scripts produce consistent TSV.GZ files:
+
+**Long scores file** (`*_good_long_scores.tsv.gz`):
+| Column | Description |
+|--------|-------------|
+| `id` | Sequence identifier |
+| `loss` | Cross-entropy loss value |
+| `bact_prob` | Bacterial classification probability (0-1) |
+
+**Short scores file** (`*_good_short_scores.tsv.gz`):
+Contains metadata for reads/pairs excluded due to length filtering.
