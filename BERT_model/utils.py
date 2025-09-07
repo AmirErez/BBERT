@@ -10,7 +10,8 @@ try:
     from pynvml import nvmlInit, nvmlDeviceGetHandleByIndex, nvmlDeviceGetMemoryInfo, nvmlDeviceGetUtilizationRates
     nvmlInit()
     PYNVML_AVAILABLE = True
-except ImportError:
+except (ImportError, Exception):
+    # Catch ImportError (pynvml not installed) and any NVML errors (no NVIDIA drivers on Mac)
     PYNVML_AVAILABLE = False
 
 # Global singleton logger

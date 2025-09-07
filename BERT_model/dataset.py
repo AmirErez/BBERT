@@ -20,17 +20,23 @@ class FastqIterableDataset(IterableDataset):
             worker_id = worker_info.id
             num_workers = worker_info.num_workers
 
-        if self.file_path.endswith('.gz'):
+        if self.file_path.endswith(('.fasta.gz', '.fna.gz')):
+            open_func = lambda x: gzip.open(x, 'rt')
+            file_format = "fasta"
+        elif self.file_path.endswith('.fastq.gz'):
             open_func = lambda x: gzip.open(x, 'rt')
             file_format = "fastq"
-        elif self.file_path.endswith('.fasta'):
+        elif self.file_path.endswith('.gz'):
+            open_func = lambda x: gzip.open(x, 'rt')
+            file_format = "fastq"  # default to fastq for other .gz files
+        elif self.file_path.endswith(('.fasta', '.fna')):
             open_func = lambda x: open(x, 'rt')
             file_format = "fasta"
         elif self.file_path.endswith('.fastq'):
             open_func = lambda x: open(x, 'rt')
             file_format = "fastq"
         else:
-            raise ValueError("Unsupported file format. Only .gz, .fasta, and .fastq are supported.")
+            raise ValueError("Unsupported file format. Supported: .fasta, .fna, .fastq, .fasta.gz, .fna.gz, .fastq.gz")
 
         with open_func(self.file_path) as handle:
             for i, chunk in enumerate(self._yield_chunks(handle, file_format)):
@@ -63,17 +69,23 @@ class FastqIterableDataset(IterableDataset):
             return self.max_reads
 
         # Count all reads in the file (expensive for large files)
-        if self.file_path.endswith('.gz'):
+        if self.file_path.endswith(('.fasta.gz', '.fna.gz')):
+            open_func = lambda x: gzip.open(x, 'rt')
+            file_format = "fasta"
+        elif self.file_path.endswith('.fastq.gz'):
             open_func = lambda x: gzip.open(x, 'rt')
             file_format = "fastq"
-        elif self.file_path.endswith('.fasta'):
+        elif self.file_path.endswith('.gz'):
+            open_func = lambda x: gzip.open(x, 'rt')
+            file_format = "fastq"  # default to fastq for other .gz files
+        elif self.file_path.endswith(('.fasta', '.fna')):
             open_func = lambda x: open(x, 'rt')
             file_format = "fasta"
         elif self.file_path.endswith('.fastq'):
             open_func = lambda x: open(x, 'rt')
             file_format = "fastq"
         else:
-            raise ValueError("Unsupported file format. Only .gz, .fasta, and .fastq files are supported.")
+            raise ValueError("Unsupported file format. Supported: .fasta, .fna, .fastq, .fasta.gz, .fna.gz, .fastq.gz")
 
         with open_func(self.file_path) as handle:
             return sum(1 for _ in SeqIO.parse(handle, file_format))
@@ -88,17 +100,23 @@ class FastqIterableDataset(IterableDataset):
         if hasattr(self, "_seq_lens") and self._seq_lens is not None:
             return self._seq_lens, self._total_reads
 
-        if self.file_path.endswith('.gz'):
+        if self.file_path.endswith(('.fasta.gz', '.fna.gz')):
             open_func = lambda x: gzip.open(x, 'rt')
-            file_format = 'fastq'  # or fasta if you know
-        elif self.file_path.endswith('.fasta'):
+            file_format = 'fasta'
+        elif self.file_path.endswith('.fastq.gz'):
+            open_func = lambda x: gzip.open(x, 'rt')
+            file_format = 'fastq'
+        elif self.file_path.endswith('.gz'):
+            open_func = lambda x: gzip.open(x, 'rt')
+            file_format = 'fastq'  # default to fastq for other .gz files
+        elif self.file_path.endswith(('.fasta', '.fna')):
             open_func = lambda x: open(x, 'rt')
             file_format = 'fasta'
         elif self.file_path.endswith('.fastq'):
             open_func = lambda x: open(x, 'rt')
             file_format = 'fastq'
         else:
-            raise ValueError("Unsupported file format. Only .gz, .fasta, and .fastq are supported.")
+            raise ValueError("Unsupported file format. Supported: .fasta, .fna, .fastq, .fasta.gz, .fna.gz, .fastq.gz")
 
         seq_lens = []
         with open_func(self.file_path) as handle:
