@@ -19,12 +19,6 @@ The model processes short DNA sequences (100bp or longer) and outputs classifica
 - **Storage**: ~2GB for model files (requires Git LFS)
 - **Dependencies**: PyTorch, Transformers, PyArrow, pandas, scikit-learn, seaborn
 
-### Mac Users
-For Apple Silicon Macs, the model will automatically use MPS (Metal Performance Shaders) for acceleration. Install PyTorch with MPS support:
-```bash
-conda install pytorch::pytorch torchvision torchaudio -c pytorch
-```
-
 ## 1. Installation.  
 ### 1.1. Download
 #### Option 1: From github
@@ -33,26 +27,54 @@ First, download this repository,
 git clone https://github.com/AmirErez/BBERT.git
 cd BBERT
 ```
-You will need github's large file storage feature to download the model
+
+#### Installing Git Large File Storage
+You will need GitHub's large file storage feature to download the model files.
+
+**On Unix/Linux:**
 ```bash
-sudo apt-get install git-lfs  # This or a different way to install git-lfs
+sudo apt-get install git-lfs  # Ubuntu/Debian
+# OR
+sudo yum install git-lfs      # CentOS/RHEL/Fedora
+# OR use your distribution's package manager
+```
+
+**On Mac:**
+Download and install Git LFS from https://git-lfs.com or use a package manager:
+```bash
+brew install git-lfs         # Using Homebrew
+# OR
+sudo port install git-lfs    # Using MacPorts
+```
+
+**Initialize Git LFS (all platforms):**
+```bash
 git lfs install
-git lfs pull # Downloads the model
+git lfs pull # Downloads the model files
 ```
 #### Option 2: From Zenodo
 TBA
 
-### 1.2.  Create BBERT environment:
+### 1.2. Install using Conda
+
+**Prerequisites:** You need conda or mamba installed on your system:
+- **Conda:** Download from https://conda.io/miniconda.html or https://www.anaconda.com/
+- **Mamba:** Faster alternative, install with `conda install mamba -n base -c conda-forge`
 
 #### For Linux/Windows with CUDA:
 ```bash
 conda env create -f BBERT_env.yml  
+# OR for faster installation:
+mamba env create -f BBERT_env.yml
 ```
 
 #### For Mac (recommended):
 ```bash
 conda env create -f BBERT_env_mac.yml
 conda activate BBERT_mac
+# OR for faster installation:
+mamba env create -f BBERT_env_mac.yml
+mamba activate BBERT_mac
 ```
 
 #### Manual installation for Mac/CPU-only systems:
@@ -285,3 +307,112 @@ python tests/test_inference_accuracy.py
 - ✅ All sequences processed correctly
 
 The test provides detailed output showing individual sequence predictions for model validation.
+
+## Troubleshooting
+
+### Installing Git
+
+If you don't have Git installed on your system, you'll need it to clone the repository and access Git LFS files.
+
+**On Unix/Linux:**
+```bash
+# Ubuntu/Debian
+sudo apt-get update
+sudo apt-get install git
+
+# CentOS/RHEL/Fedora
+sudo yum install git
+# OR on newer versions
+sudo dnf install git
+
+# Arch Linux
+sudo pacman -S git
+```
+
+**On Mac:**
+```bash
+# Using Homebrew (recommended)
+brew install git
+
+# Using MacPorts
+sudo port install git
+
+# Or download from: https://git-scm.com/download/mac
+```
+
+**On Windows:**
+- Download Git for Windows from: https://git-scm.com/download/win
+- Or use Windows Subsystem for Linux (WSL) and follow Linux instructions
+
+### Downloading Without Git (Alternative Methods)
+
+If you cannot install Git, here are alternative approaches:
+
+#### Option 1: Manual File Download
+**⚠️ Warning:** This is tedious and not recommended for large repositories.
+
+1. **Download repository code:** Use GitHub's "Download ZIP" button
+2. **Manually download model files:** 
+   - Navigate to each model file in the GitHub web interface
+   - Click on the file, then "View raw" 
+   - Right-click "View raw" and "Save link as..."
+   - Repeat for all model files in these directories:
+     - `models/diverse_bact_12_768_6_20000/`
+     - `emb_class_bact/models/`
+     - `emb_class_frame/models/`
+     - `emb_class_coding/models/`
+
+#### Option 2: Use Git GUI Clients
+Some GUI clients handle Git LFS automatically:
+- **GitHub Desktop:** https://desktop.github.com/
+- **Sourcetree:** https://www.sourcetreeapp.com/
+- **GitKraken:** https://www.gitkraken.com/
+
+### Common Installation Issues
+
+#### Issue: "git: command not found"
+**Solution:** Install Git using the instructions above.
+
+#### Issue: "git-lfs: command not found" 
+**Solution:** Install Git LFS using the platform-specific instructions in Section 1.1.
+
+#### Issue: "tokenizers version conflict" (transformers ImportError)
+**Solution:** Install the correct tokenizers version:
+```bash
+conda activate BBERT_mac  # or your environment name
+pip install tokenizers==0.13.3
+```
+
+#### Issue: "CUDA not available" on systems with GPU
+**Solutions:**
+- Verify CUDA installation: `nvidia-smi`
+- Reinstall PyTorch with CUDA support
+- For Mac: The model will automatically use MPS (Metal Performance Shaders)
+
+#### Issue: "Out of memory" errors
+**Solutions:**
+- Reduce batch size: `--batch_size 32` or lower
+- Close other applications to free memory
+- For CPU-only systems, use smaller batch sizes (8-16)
+
+#### Issue: Repository download as ZIP doesn't include model files
+**Explanation:** GitHub's ZIP download doesn't include Git LFS files by default.
+**Solution:** Use `git clone` with Git LFS as described in Section 1.1, or try the alternative methods above.
+
+### Getting Help
+
+If you encounter issues not covered here:
+
+1. **Check existing issues:** https://github.com/AmirErez/BBERT/issues
+2. **Create a new issue:** Include your:
+   - Operating system and version
+   - Python version
+   - Complete error message
+   - Command you were trying to run
+3. **Provide system information:**
+   ```bash
+   python --version
+   conda --version  # or mamba --version
+   git --version
+   git lfs version
+   ```
