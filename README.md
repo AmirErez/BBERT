@@ -108,7 +108,7 @@ python -c "import torch; print('PyTorch version:', torch.__version__); print('MP
 
 #### Test with example data:
 ```bash
-python source/inference.py --input_dir example --input_files example.fasta --output_dir ./ --batch_size 64 
+python source/inference.py example/example.fasta --output_dir ./ --batch_size 64 
 ```
 
 **Expected output on Mac:**
@@ -161,17 +161,44 @@ It processes FASTA/FASTQ/GZIP input files, computes probabilities, loss values, 
 - Supports GPU acceleration and multi-core CPUs (SLURM-friendly)
 
 ### Usage
+
+#### Single File
+```bash
+python source/inference.py example/sample.fasta --output_dir results --batch_size 1024
+```
+
+#### Multiple Files (Space-Separated)
 ```bash
 python source/inference.py \
-    --input_dir /path/to/input \
-    --input_files sample1.fasta sample2.fq.gz \
-    --output_dir /path/to/output \
+    example/file1.fasta \
+    example/file2.fasta.gz \
+    data/file3.fastq \
+    --output_dir results \
     --batch_size 1024
 ```
 
+#### Using Wildcards
+```bash
+# All .fasta.gz files in example directory
+python source/inference.py example/*.fasta.gz --output_dir results
+
+# Multiple patterns
+python source/inference.py example/*.fasta data/*.fastq.gz --output_dir results
+```
+
+#### With Embeddings (Warning: Large Output Files)
+```bash
+python source/inference.py \
+    example/Pseudomonas_aeruginosa_R1.fasta.gz \
+    example/Pseudomonas_aeruginosa_R2.fasta.gz \
+    example/Saccharomyces_paradoxus_R1.fasta.gz \
+    example/Saccharomyces_paradoxus_R2.fasta.gz \
+    --output_dir results \
+    --emb_out
+```
+
 ### Arguments
-- `--input_dir`: Directory where input files are located (required)
-- `--input_files`: List of input filenames to process (required, can specify multiple files)
+- `files`: List of input file paths to process (required, can be relative or absolute paths)
 - `--output_dir`: Directory to save output Parquet files (required)
 - `--batch_size`: Batch size for processing (default: 1024)
 - `--emb_out`: Include sequence embeddings in output (optional, warning: slow and large files)

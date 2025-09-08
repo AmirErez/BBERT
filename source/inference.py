@@ -58,16 +58,14 @@ elif hidden_size == 768:
     
 # Argument parsing
 parser = argparse.ArgumentParser(description="Run scoring on a FASTA, FASTQ or GZIP files and save the output dir.")
-parser.add_argument("--input_dir", type=str, required=True, help="Directory where input files are located")
-parser.add_argument("--input_files", nargs='+', type=str, required=True, help="List of input filenames to process")
-parser.add_argument("--output_dir", type=str, required=True, help="Directory to save output CSVs")
+parser.add_argument("files", nargs='+', type=str, help="List of input file paths to process (can be relative or absolute paths)")
+parser.add_argument("--output_dir", type=str, required=True, help="Directory to save output files")
 parser.add_argument("--batch_size", type=int, default=1024, help="Batch size to use for processing")
 parser.add_argument("--emb_out", action='store_true', help="Flag to save or return embedding output")
 
 args = parser.parse_args()
 
-input_dir = args.input_dir
-input_files = args.input_files
+input_files = args.files
 output_dir = args.output_dir
 batch_size = args.batch_size
 emb_out = args.emb_out
@@ -147,13 +145,20 @@ if __name__ == "__main__":
     loss_fn = torch.nn.CrossEntropyLoss(reduction='none').to(device)
     
     
-    for file_name in input_files:
+    for file_path in input_files:
         ## dataset loading
-        dataset_path = os.path.join(input_dir, file_name)
+        dataset_path = file_path
+        
+        # Extract base filename for output (without directory and extensions)
+        base_name = os.path.splitext(os.path.basename(file_path))[0]
+        # Handle .gz files (remove .gz and then the next extension)
+        if base_name.endswith('.fasta') or base_name.endswith('.fastq'):
+            base_name = os.path.splitext(base_name)[0]
+        
         if emb_out:
-            output_path = os.path.join(output_dir, f"{file_name.split('.')[0]}_scores_len_emb.parquet")
+            output_path = os.path.join(output_dir, f"{base_name}_scores_len_emb.parquet")
         else:
-            output_path = os.path.join(output_dir, f"{file_name.split('.')[0]}_scores_len.parquet")
+            output_path = os.path.join(output_dir, f"{base_name}_scores_len.parquet")
             
         logger.info(f"Processing file: {dataset_path}")
         dataset = FastqIterableDataset(dataset_path, chunk_size=chunk_size, max_reads=data_len)
