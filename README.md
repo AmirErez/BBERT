@@ -426,28 +426,14 @@ The visualization script now requires explicit parameters for all inputs:
 - `--max_samples`: Maximum samples per category (default: 1000)
 - `--perplexity`: Perplexity parameter for fine-tuning t-SNE behavior
 
-### Dimensionality Reduction Methods
-
-**t-SNE (t-Distributed Stochastic Neighbor Embedding):**
-- Better for revealing local structure and clusters
-- Non-linear transformation
-- Slower (several minutes for large datasets)
-- Good for publication-quality visualizations
-
-**PCA (Principal Component Analysis):**
-- Linear transformation showing global variance
-- Much faster (seconds)
-- Shows explained variance ratios
-- Good for quick exploratory analysis
-
 
 ### What the Visualization Shows
 
-The script creates a 4-panel plots saved in both PNG and PDF formats that reveal:
+The script creates 4-panel plots saved in both PNG and PDF formats that reveal:
 
-1. **Sample/Species Separation**: How well BBERT separates different samples or species
-2. **Coding Classification**: Distinction between protein-coding and non-coding DNA sequences  
-3. **Reading Frame Grouping**: Clustering of sequences by predicted reading frames (+1,+2,+3,-1,-2,-3)
+1. **Sample/Species Separation**: How well BBERT separates different samples using your provided labels
+2. **Coding Classification**: Distinction between protein-coding and non-coding DNA sequences based on BBERT predictions
+3. **Reading Frame Grouping**: Clustering of sequences by BBERT's predicted reading frames (+1,+2,+3,-1,-2,-3)
 4. **Sample Distribution**: Comparison between different samples (e.g., R1/R2 reads, different conditions)
 
 ### Interpreting Results

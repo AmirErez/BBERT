@@ -16,26 +16,6 @@ from sklearn.decomposition import PCA
 from pathlib import Path
 import argparse
 
-def extract_organism_info(seq_id):
-    """Extract organism and coding information from sequence ID"""
-    if 'Pseudomonas' in seq_id or 'NZ_HG974234' in seq_id:
-        organism = 'Pseudomonas'
-    elif 'Saccharomyces' in seq_id or 'NC_047487' in seq_id:
-        organism = 'Saccharomyces'
-    else:
-        organism = 'Unknown'
-    
-    # Extract coding information from CDS_info field
-    if 'CDS_100.0%_coding' in seq_id:
-        coding_status = 'Coding'
-    elif 'Non-CDS_0.0%_coding' in seq_id:
-        coding_status = 'Non-coding'
-    elif 'CDS_' in seq_id:
-        coding_status = 'Coding'
-    else:
-        coding_status = 'Unknown'
-    
-    return organism, coding_status
 
 def load_embeddings_flexible(files_list, labels_list):
     """
