@@ -393,18 +393,62 @@ ls example/*_scores_len_emb.parquet
 # ls: example/*_scores_len_emb.parquet: No such file or directory
 # Run the --emb_out command above first!
 
-# Generate t-SNE visualization 
-python example/visualize_embeddings.py --results_dir example --output_dir example --max_samples 500 --perplexity 30
+# Basic usage with required parameters
+python source/visualize_embeddings.py \
+  --files "example/Pseudomonas_aeruginosa_R1_scores_len_emb.parquet,example/Saccharomyces_paradoxus_R1_scores_len_emb.parquet" \
+  --labels "P. aeruginosa,S. paradoxus" \
+  --output_dir example \
+  --output_name bacterial_vs_eukaryotic \
+  --max_samples 500
+
+# Use PCA (faster alternative to t-SNE)
+python source/visualize_embeddings.py \
+  --files "example/Pseudomonas_aeruginosa_R1_scores_len_emb.parquet,example/Saccharomyces_paradoxus_R1_scores_len_emb.parquet" \
+  --labels "P. aeruginosa,S. paradoxus" \
+  --output_dir example \
+  --output_name bacterial_vs_eukaryotic_pca \
+  --method pca \
+  --max_samples 500
 ```
+
+### Usage Requirements
+
+The visualization script now requires explicit parameters for all inputs:
+
+**Required parameters:**
+- `--files`: Comma-separated list of embedding parquet files
+- `--labels`: Comma-separated list of labels for each file (must match number of files)
+- `--output_dir`: Directory to save visualization files
+- `--output_name`: Output filename (without extension)
+
+**Optional parameters:**
+- `--method`: Choose between `tsne` or `pca` (default: tsne)
+- `--max_samples`: Maximum samples per category (default: 1000)
+- `--perplexity`: Perplexity parameter for fine-tuning t-SNE behavior
+
+### Dimensionality Reduction Methods
+
+**t-SNE (t-Distributed Stochastic Neighbor Embedding):**
+- Better for revealing local structure and clusters
+- Non-linear transformation
+- Slower (several minutes for large datasets)
+- Good for publication-quality visualizations
+
+**PCA (Principal Component Analysis):**
+- Linear transformation showing global variance
+- Much faster (seconds)
+- Shows explained variance ratios
+- Good for quick exploratory analysis
+
 
 ### What the Visualization Shows
 
-The script creates a 4-panel t-SNE plot (`example/bbert_tsne_visualization.png`) that reveals:
+The script creates a 4-panel plots saved in both PNG and PDF formats that reveal:
 
-1. **Organism Separation**: How well BBERT separates bacterial (Pseudomonas) vs. eukaryotic (Saccharomyces) sequences
+1. **Sample/Species Separation**: How well BBERT separates different samples or species
 2. **Coding Classification**: Distinction between protein-coding and non-coding DNA sequences  
 3. **Reading Frame Grouping**: Clustering of sequences by predicted reading frames (+1,+2,+3,-1,-2,-3)
-4. **Sample Distribution**: Comparison between R1 and R2 paired-end reads
+4. **Sample Distribution**: Comparison between different samples (e.g., R1/R2 reads, different conditions)
 
 ### Interpreting Results
 
@@ -413,6 +457,12 @@ The script creates a 4-panel t-SNE plot (`example/bbert_tsne_visualization.png`)
 - **Coding vs. non-coding**: Protein-coding sequences often cluster separately from non-coding regions
 - **Frame consistency**: Sequences in the same reading frame may group together
 - **R1/R2 similarity**: Paired-end reads from the same organism should cluster near each other
+
+**Visualization Options:**
+- `--method`: Choose `tsne` or `pca` (default: `tsne`)
+- `--output_name`: Custom output filename (generates both `.png` and `.pdf`)
+- `--max_samples`: Limit samples per category for faster processing
+- `--perplexity` and `--n_iter`: Fine-tune t-SNE parameters
 
 **Troubleshooting visualization:**
 
