@@ -93,54 +93,133 @@ conda install "numpy<2"  # Fix compatibility issues
 # Additional packages
 pip install datasets huggingface_hub safetensors tokenizers torchinfo pynvml
 ```
-### 1.3.  Test installation and GPU support
+### 1.3. Verify Installation
 
-#### GPU acceleration test:
-**For Linux/Windows users:**
+#### Step 1: Run System Diagnostics (Required)
+Immediately after installation, verify that everything is set up correctly:
+
+**Unix/Linux/Mac:**
 ```bash
-python -c "import torch; print('PyTorch CUDA available:', torch.cuda.is_available())"
+./bbert --check
 ```
 
-**For Mac users:**
-```bash
-python -c "import torch; print('PyTorch version:', torch.__version__); print('MPS available:', hasattr(torch.backends, 'mps') and torch.backends.mps.is_available() if hasattr(torch.backends, 'mps') else False); device = 'mps' if hasattr(torch.backends, 'mps') and torch.backends.mps.is_available() else ('cuda' if torch.cuda.is_available() else 'cpu'); print('BBERT will use:', device)"
+**Windows:**
+```cmd
+bbert.bat --check
 ```
 
-#### Test with example data:
+**Cross-platform (Python):**
 ```bash
-python source/inference.py example/example.fasta --output_dir ./ --batch_size 64 
+python bbert.py --check
 ```
+
+This will verify:
+- ✅ Python 3.10+ installation
+- ✅ Required packages (PyTorch, Transformers, BioPython, etc.)  
+- ✅ Model files downloaded via Git LFS
+- ✅ GPU availability (CUDA/MPS)
+- ✅ Conda environment status
 
 **Expected output on Mac:**
 - `Using Apple MPS (Metal Performance Shaders)` - if you have Apple Silicon
 - `Using CPU (no GPU acceleration available)` - Uses CPU instead
 
-The output will be in `example_scores_len.parquet`. View results:
+#### Step 2: Run Accuracy Tests (Recommended)
+After system checks pass, validate BBERT's classification accuracy:
+
+```bash
+python source/test_inference_accuracy.py
+```
+
+This test uses known ground truth sequences:
+- Sequences 1-5: *E. coli* K-12 (should classify as bacterial, bact_prob > 0.5)
+- Sequences 6-10: *Saccharomyces cerevisiae* (should classify as non-bacterial, bact_prob < 0.5)
+
+**Expected results:**
+Perfect classification: All 10 sequences correctly classified
+
+#### Step 3: Test with Example Data
+Once tests pass, try processing example data:
+
+**Unix/Linux/Mac:**
+```bash
+./bbert example/example.fasta --output_dir example/ --batch_size 64
+```
+
+**Windows:**
+```cmd
+bbert.bat example\example.fasta --output_dir example/ --batch_size 64
+```
+
+**Cross-platform (Python):**
+```bash
+python bbert.py example/example.fasta --output_dir example/ --batch_size 64
+```
+
+The output will be in `example_scores_len.parquet`. View results in the python console:
 ```python
 import pandas as pd
-df = pd.read_parquet('example_scores_len.parquet')
+df = pd.read_parquet('example/example_scores_len.parquet')
 print(df.head())
 ```
-#### Option 2: From a job manager
-Here is an example how to execute the script on a gpu node in our SLURM setup.
 
-```bash  
-   #!/bin/bash  
-   #SBATCH --output=BBERT_venv_check_%A.txt  
-   #SBATCH --gres=gpu:1  
-   #SBATCH --time=01:00:00  
-   #SBATCH --mem=8G  
-   echo "Checking CUDA availability for PyTorch and TensorFlow..."  
-   python3 - <<END  
-   import torch  
-   print("PyTorch CUDA available:", torch.cuda.is_available())  
-   END
-   python source/inference.py --input_dir ../example --input_files example.fasta --output_dir ../example --batch_size 1024   
+
+## 2. Running BBERT
+
+### 2.1. Using the Convenient Executables (Recommended)
+
+BBERT provides user-friendly executables that automatically check your system and provide helpful error messages:
+
+**Unix/Linux/Mac:** `./bbert`
+**Windows:** `bbert.bat`  
+**Cross-platform:** `python bbert.py`
+
+#### System Diagnostics
+Before running analysis, check that everything is set up correctly:
+
+```bash
+# Unix/Linux/Mac
+./bbert --check
+
+# Windows  
+bbert.bat --check
+
+# Cross-platform
+python bbert.py --check
 ```
-You may then examine the output in ../example/scores_len.parquet as described in Option 1 above.
 
-## 2. Inference.
- `source/inference.py` — Scoring Script for Sequence Files
+#### Usage Examples
+
+**Single file:**
+```bash
+./bbert example/sample.fasta --output_dir example
+```
+
+**Multiple files:**
+```bash
+./bbert example/Pseudo*.fasta.gz --output_dir example/ --batch_size 512
+```
+
+**With embeddings (warning: large files):**
+```bash
+./bbert \
+    example/Pseudomonas_aeruginosa_R1.fasta.gz \
+    example/Pseudomonas_aeruginosa_R2.fasta.gz \
+    example/Saccharomyces_paradoxus_R1.fasta.gz \
+    example/Saccharomyces_paradoxus_R2.fasta.gz \
+    --output_dir example --emb_out
+```
+
+#### What the Executables Check:
+- ✅ Python 3.10+ installation
+- ✅ Required packages (PyTorch, Transformers, BioPython, etc.)  
+- ✅ Model files downloaded via Git LFS
+- ✅ GPU availability (CUDA/MPS)
+- ✅ Input files exist
+- ✅ Conda environment status
+
+### 2.2. Direct Script Usage
+`source/inference.py` — Scoring Script for Sequence Files
 
 This script runs inference on DNA sequencing data using the BBERT model and multiple downstream classifiers (bacterial classification, frame prediction, coding classification).  
 It processes FASTA/FASTQ/GZIP input files, computes probabilities, loss values, and optionally embeddings, and writes results to Parquet files for downstream analysis.
@@ -164,27 +243,13 @@ It processes FASTA/FASTQ/GZIP input files, computes probabilities, loss values, 
 
 #### Single File
 ```bash
-python source/inference.py example/sample.fasta --output_dir results --batch_size 1024
-```
-
-#### Multiple Files (Space-Separated)
-```bash
-python source/inference.py \
-    example/file1.fasta \
-    example/file2.fasta.gz \
-    data/file3.fastq \
-    --output_dir results \
-    --batch_size 1024
+python source/inference.py example/sample.fasta --output_dir example --batch_size 1024
 ```
 
 #### Using Wildcards
 ```bash
 # All .fasta.gz files in example directory
-python source/inference.py example/*.fasta.gz --output_dir results
-
-# Multiple patterns
-python source/inference.py example/*.fasta data/*.fastq.gz --output_dir results
-```
+python source/inference.py example/*.fasta.gz --output_dir example
 
 #### With Embeddings (Warning: Large Output Files)
 ```bash
@@ -193,7 +258,7 @@ python source/inference.py \
     example/Pseudomonas_aeruginosa_R2.fasta.gz \
     example/Saccharomyces_paradoxus_R1.fasta.gz \
     example/Saccharomyces_paradoxus_R2.fasta.gz \
-    --output_dir results \
+    --output_dir example \
     --emb_out
 ```
 
@@ -219,7 +284,7 @@ The inference script outputs results to a Parquet file containing:
 ### Reading Results
 ```python
 import pandas as pd
-df = pd.read_parquet('example_scores_len.parquet')
+df = pd.read_parquet('example/example_scores_len.parquet')
 print(df.head())
 
 # Get sequences predicted as bacterial (>50% probability)
@@ -241,7 +306,7 @@ For single-end sequencing data, convert Parquet to TSV format:
 ```bash
 python source/convert_scores_to_tsv.py \
     --input example_scores_len.parquet \
-    --output_dir ./ \
+    --output_dir example \
     --output_prefix example
 ```
 
@@ -251,49 +316,35 @@ python source/convert_scores_to_tsv.py \
 
 ### Paired-End Data Processing
 
-For paired-end sequencing data (R1/R2 files), merge scores from both reads:
+For paired-end sequencing data (R1/R2 files), merge scores from both reads using the files from our usage examples:
 
 ```bash
+# Merge P. aeruginosa R1/R2 scores
 python source/merge_paired_scores.py \
-    --r1 /path/to/SRR8100008-good_1_scores_len.parquet \
-    --r2 /path/to/SRR8100008-good_2_scores_len.parquet \
-    --output_dir /path/to/output \
-    --output_prefix SRR8100008
+    --r1 example/Pseudomonas_aeruginosa_R1_scores_len_emb.parquet \
+    --r2 example/Pseudomonas_aeruginosa_R2_scores_len_emb.parquet \
+    --output_dir example \
+    --output_prefix Pseudomonas_aeruginosa
+
+# Merge S. paradoxus R1/R2 scores  
+python source/merge_paired_scores.py \
+    --r1 example/Saccharomyces_paradoxus_R1_scores_len_emb.parquet \
+    --r2 example/Saccharomyces_paradoxus_R2_scores_len_emb.parquet \
+    --output_dir example \
+    --output_prefix Saccharomyces_paradoxus
 ```
 
 **Output:**
-- `SRR8100008_good_long_scores.tsv.gz` - Combined scores for read pairs ≥100bp
-- `SRR8100008_good_short_scores.tsv.gz` - Filtered short read pairs
+- `Pseudomonas_aeruginosa_good_long_scores.tsv.gz` - Combined scores for read pairs ≥100bp
+- `Pseudomonas_aeruginosa_good_short_scores.tsv.gz` - Filtered short read pairs
+- `Saccharomyces_paradoxus_good_long_scores.tsv.gz` - Combined scores for read pairs ≥100bp  
+- `Saccharomyces_paradoxus_good_short_scores.tsv.gz` - Filtered short read pairs
 
 **Score combination logic:**
 - Both R1,R2 ≥100bp: Average their `loss` and `bact_prob`
 - Only one read ≥100bp: Use that read's scores  
 - Both reads <100bp: Exclude from long scores file
 
-### Batch Processing with SLURM
-
-For processing many files, use SLURM array jobs. Choose the appropriate batch script:
-
-**Single-end data conversion:**
-```bash
-# Create accessions.csv with one identifier per line
-echo -e "SRR8100008\nSRR8100009\nSRR8100010" > accessions.csv
-
-# Submit batch job for single-end conversion
-sbatch --array=1-100 scripts/batch_convert_scores.sh accessions.csv /path/to/scores
-```
-
-**Paired-end data merging:**
-```bash
-# Submit batch job for paired-end processing  
-sbatch --array=1-100 scripts/batch_merge_scores.sh accessions.csv /path/to/scores
-```
-
-**Monitor jobs:**
-```bash
-squeue -u $USER
-tail -f logs/convert_scores_JOBID_TASKID.log
-```
 
 ### Final Output Format
 
@@ -309,33 +360,75 @@ Both post-processing scripts produce consistent TSV.GZ files:
 **Short scores file** (`*_good_short_scores.tsv.gz`):
 Contains metadata for reads/pairs excluded due to length filtering.
 
-## 5. Testing BBERT Accuracy
+## 5. Visualizing BBERT Embeddings
 
-Test BBERT's classification performance using known ground truth sequences:
+BBERT can output high-dimensional embeddings that capture sequence features learned by the transformer model. These embeddings can be visualized using t-SNE to explore how BBERT groups sequences by organism type, coding status, and reading frame.
+
+### Prerequisites
+
+The visualization requires embeddings to be generated during inference using the `--emb_out` flag:
 
 ```bash
-# Run accuracy tests
-python tests/test_inference_accuracy.py
+# Generate embeddings for visualization (if not done already)
+./bbert \
+    example/Pseudomonas_aeruginosa_R1.fasta.gz \
+    example/Pseudomonas_aeruginosa_R2.fasta.gz \
+    example/Saccharomyces_paradoxus_R1.fasta.gz \
+    example/Saccharomyces_paradoxus_R2.fasta.gz \
+    --output_dir example --emb_out --batch_size 512
 ```
 
-**Test data:** `example/example.fasta` contains 10 sequences:
-- Sequences 1-5: *E. coli* K-12 (should classify as bacterial, bact_prob > 0.5)
-- Sequences 6-10: *Saccharomyces cerevisiae* (should classify as non-bacterial, bact_prob < 0.5)
+**⚠️ Important**: Embedding files (`*_scores_len_emb.parquet`) are much larger than regular output files and processing is slower.
 
-**Expected results:**
-- **Perfect classification**: All 10 sequences correctly classified using 0.5 threshold
-- *E. coli* mean bacterial probability > 0.5
-- *S. cerevisiae* mean bacterial probability < 0.5
+### Creating t-SNE Visualizations
 
-**What the test validates:**
-- ✅ Model predictions are accurate for known organisms
-- ✅ Probabilities are in valid ranges [0,1]  
-- ✅ Output format is consistent
-- ✅ All sequences processed correctly
+Once embeddings are generated, create interactive visualizations:
 
-The test provides detailed output showing individual sequence predictions for model validation.
+```bash
+# Check that embedding files exist
+ls example/*_scores_len_emb.parquet
 
-## Troubleshooting
+# If no embedding files found, you'll see:
+# ls: example/*_scores_len_emb.parquet: No such file or directory
+# Run the --emb_out command above first!
+
+# Generate t-SNE visualization 
+python example/visualize_embeddings.py --results_dir example --output_dir example --max_samples 500 --perplexity 30
+```
+
+### What the Visualization Shows
+
+The script creates a 4-panel t-SNE plot (`example/bbert_tsne_visualization.png`) that reveals:
+
+1. **Organism Separation**: How well BBERT separates bacterial (Pseudomonas) vs. eukaryotic (Saccharomyces) sequences
+2. **Coding Classification**: Distinction between protein-coding and non-coding DNA sequences  
+3. **Reading Frame Grouping**: Clustering of sequences by predicted reading frames (+1,+2,+3,-1,-2,-3)
+4. **Sample Distribution**: Comparison between R1 and R2 paired-end reads
+
+### Interpreting Results
+
+**Expected patterns:**
+- **Clear organism separation**: Pseudomonas and Saccharomyces should form distinct clusters
+- **Coding vs. non-coding**: Protein-coding sequences often cluster separately from non-coding regions
+- **Frame consistency**: Sequences in the same reading frame may group together
+- **R1/R2 similarity**: Paired-end reads from the same organism should cluster near each other
+
+**Troubleshooting visualization:**
+
+If embeddings are missing:
+```bash
+# Error: No embedding parquet files found in example
+# Solution: Re-run BBERT with --emb_out flag
+./bbert example/*.fasta.gz --output_dir example --emb_out
+```
+
+If visualization fails:
+```bash
+# Install additional dependencies if needed
+pip install matplotlib seaborn scikit-learn
+```
+
+## 6. Troubleshooting
 
 ### Installing Git
 

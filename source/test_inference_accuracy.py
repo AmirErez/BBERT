@@ -31,8 +31,7 @@ class TestInferenceAccuracy(unittest.TestCase):
         # Run BBERT inference
         cmd = [
             "python", str(cls.bbert_dir / "source" / "inference.py"),
-            "--input_dir", str(cls.example_dir),
-            "--input_files", "example.fasta",
+            str(cls.example_fasta),
             "--output_dir", cls.temp_dir,
             "--batch_size", "64"
         ]

@@ -1,0 +1,361 @@
+#!/bin/bash
+
+# BBERT - Cross-platform executable for BERT-based DNA sequence analysis
+# Usage: ./bbert file1.fasta file2.fastq.gz --output_dir results [options]
+
+set -e  # Exit on any error
+
+# Color codes for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+# Function to print colored output
+print_error() { echo -e "${RED}❌ Error: $1${NC}" >&2; }
+print_success() { echo -e "${GREEN}✅ $1${NC}"; }
+print_warning() { echo -e "${YELLOW}⚠️  Warning: $1${NC}"; }
+print_info() { echo -e "${BLUE}ℹ️  $1${NC}"; }
+
+# Function to check if command exists
+command_exists() {
+    command -v "$1" >/dev/null 2>&1
+}
+
+# Function to check Python environment
+check_python_env() {
+    print_info "Checking Python environment..."
+    
+    # Check if python is available
+    if ! command_exists python; then
+        print_error "Python is not installed or not in PATH"
+        print_info "Please install Python 3.10+ and try again"
+        return 1
+    fi
+    
+    # Check Python version
+    python_version=$(python --version 2>&1 | cut -d' ' -f2)
+    major_version=$(echo "$python_version" | cut -d'.' -f1)
+    minor_version=$(echo "$python_version" | cut -d'.' -f2)
+    
+    if [ "$major_version" -lt 3 ] || ([ "$major_version" -eq 3 ] && [ "$minor_version" -lt 10 ]); then
+        print_error "Python $python_version detected. BBERT requires Python 3.10+"
+        return 1
+    fi
+    
+    print_success "Python $python_version detected"
+    return 0
+}
+
+# Function to check conda environment
+check_conda_env() {
+    # Check for conda/mamba/micromamba environment
+    if [ -n "$CONDA_DEFAULT_ENV" ] && [ "$CONDA_DEFAULT_ENV" != "base" ]; then
+        if command_exists micromamba; then
+            print_success "Micromamba environment: $CONDA_DEFAULT_ENV"
+        elif command_exists mamba; then
+            print_success "Mamba environment: $CONDA_DEFAULT_ENV"
+        else
+            print_success "Conda environment: $CONDA_DEFAULT_ENV"
+        fi
+    elif [ -n "$MAMBA_ROOT_PREFIX" ]; then
+        print_success "Mamba environment detected"
+    elif command_exists conda || command_exists mamba || command_exists micromamba; then
+        print_warning "You might be in the base environment"
+        if command_exists micromamba; then
+            print_info "Consider activating a BBERT environment: micromamba activate BBERT_mac"
+        elif command_exists mamba; then
+            print_info "Consider activating a BBERT environment: mamba activate BBERT_mac"
+        else
+            print_info "Consider activating a BBERT environment: conda activate BBERT_mac"
+        fi
+    fi
+}
+
+# Function to check required Python packages
+check_python_packages() {
+    print_info "Checking required Python packages..."
+    
+    missing_packages=()
+    
+    # Check core packages with proper import names
+    if ! python -c "import torch" 2>/dev/null; then
+        missing_packages+=("torch")
+    fi
+    
+    if ! python -c "import transformers" 2>/dev/null; then
+        missing_packages+=("transformers")
+    fi
+    
+    if ! python -c "import pandas" 2>/dev/null; then
+        missing_packages+=("pandas")
+    fi
+    
+    if ! python -c "import numpy" 2>/dev/null; then
+        missing_packages+=("numpy")
+    fi
+    
+    if ! python -c "import pyarrow" 2>/dev/null; then
+        missing_packages+=("pyarrow")
+    fi
+    
+    # Check scikit-learn (import as sklearn)
+    if ! python -c "from sklearn import __version__" 2>/dev/null; then
+        missing_packages+=("scikit-learn")
+    fi
+    
+    # Check biopython (import as Bio)
+    if ! python -c "from Bio import SeqIO" 2>/dev/null; then
+        missing_packages+=("biopython")
+    fi
+    
+    # Check other packages
+    if ! python -c "import tqdm" 2>/dev/null; then
+        missing_packages+=("tqdm")
+    fi
+    
+    # Check pyyaml (import as yaml)
+    if ! python -c "import yaml" 2>/dev/null; then
+        missing_packages+=("pyyaml")
+    fi
+    
+    if [ ${#missing_packages[@]} -gt 0 ]; then
+        print_error "Missing required packages: ${missing_packages[*]}"
+        print_info "Please install missing packages or activate the BBERT environment"
+        print_info "To install: pip install ${missing_packages[*]}"
+        return 1
+    fi
+    
+    print_success "All required packages found"
+    return 0
+}
+
+# Function to check model files
+check_model_files() {
+    print_info "Checking BBERT model files..."
+    
+    model_dirs=(
+        "models/diverse_bact_12_768_6_20000"
+        "emb_class_bact/models/emb_class_model_768H_3906K_80e"
+        "emb_class_frame/models"
+        "emb_class_coding/models/emb_coding_model_768_3906K_50e"
+    )
+    
+    missing_models=()
+    
+    for model_dir in "${model_dirs[@]}"; do
+        if [ ! -d "$model_dir" ]; then
+            missing_models+=("$model_dir")
+        fi
+    done
+    
+    if [ ${#missing_models[@]} -gt 0 ]; then
+        print_error "Missing model directories:"
+        for dir in "${missing_models[@]}"; do
+            echo "  - $dir"
+        done
+        print_info "Please ensure you've downloaded the models using Git LFS:"
+        print_info "  git lfs install"
+        print_info "  git lfs pull"
+        return 1
+    fi
+    
+    print_success "Model files found"
+    return 0
+}
+
+# Function to check GPU availability
+check_gpu() {
+    print_info "Checking GPU availability..."
+    
+    # Check for NVIDIA GPU
+    if command_exists nvidia-smi; then
+        if nvidia-smi >/dev/null 2>&1; then
+            gpu_info=$(nvidia-smi --query-gpu=name --format=csv,noheader,nounits | head -1)
+            print_success "NVIDIA GPU detected: $gpu_info"
+            return 0
+        fi
+    fi
+    
+    # Check for Apple Silicon (MPS)
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        if python -c "import torch; print(torch.backends.mps.is_available())" 2>/dev/null | grep -q "True"; then
+            print_success "Apple MPS acceleration available"
+            return 0
+        fi
+    fi
+    
+    print_warning "No GPU acceleration detected - will use CPU"
+    print_info "This will be slower but still functional"
+    return 0
+}
+
+# Function to validate input files
+validate_input_files() {
+    local files=("$@")
+    local invalid_files=()
+    
+    if [ ${#files[@]} -eq 0 ]; then
+        print_error "No input files specified"
+        return 1
+    fi
+    
+    for file in "${files[@]}"; do
+        if [ ! -f "$file" ]; then
+            invalid_files+=("$file")
+        fi
+    done
+    
+    if [ ${#invalid_files[@]} -gt 0 ]; then
+        print_error "Input files not found:"
+        for file in "${invalid_files[@]}"; do
+            echo "  - $file"
+        done
+        return 1
+    fi
+    
+    print_success "${#files[@]} input file(s) found"
+    return 0
+}
+
+# Function to show usage
+show_usage() {
+    cat << EOF
+BBERT - BERT for Bacterial DNA Classification
+
+USAGE:
+    bbert <input_files...> --output_dir <directory> [OPTIONS]
+
+EXAMPLES:
+    # Single file
+    bbert example/sample.fasta --output_dir results
+    
+    # Multiple files
+    bbert file1.fasta file2.fastq.gz --output_dir results --batch_size 512
+    
+    # With embeddings (large output files)
+    bbert example/*.fasta.gz --output_dir results --emb_out
+    
+    # All example files
+    bbert example/Pseudomonas_*.fasta.gz example/Saccharomyces_*.fasta.gz --output_dir results
+
+OPTIONS:
+    --output_dir DIR    Directory to save output files (required)
+    --batch_size N      Batch size for processing (default: 1024)
+    --emb_out          Include sequence embeddings in output (warning: large files)
+    --help             Show this help message
+    --check            Run system checks only (don't process files)
+
+SYSTEM REQUIREMENTS:
+    - Python 3.10+
+    - PyTorch, Transformers, BioPython, pandas, numpy, pyarrow
+    - Git LFS for model files
+    - GPU recommended but not required
+
+For more information, see: https://github.com/AmirErez/BBERT
+EOF
+}
+
+# Main function
+main() {
+    # Parse arguments to check for help or check flags
+    for arg in "$@"; do
+        case $arg in
+            --help|-h)
+                show_usage
+                exit 0
+                ;;
+            --check)
+                print_info "Running system checks..."
+                echo
+                check_python_env || exit 1
+                check_conda_env
+                check_python_packages || exit 1
+                check_model_files || exit 1
+                check_gpu
+                echo
+                print_success "All system checks passed! BBERT is ready to use."
+                exit 0
+                ;;
+        esac
+    done
+    
+    # Show header
+    echo
+    echo "🧬 BBERT - BERT for Bacterial DNA Classification"
+    echo "=================================================="
+    echo
+    
+    # Run system checks
+    check_python_env || exit 1
+    check_conda_env
+    check_python_packages || exit 1
+    check_model_files || exit 1
+    check_gpu
+    echo
+    
+    # Parse arguments to extract files
+    input_files=()
+    other_args=()
+    
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            --output_dir|--batch_size)
+                other_args+=("$1" "$2")
+                shift 2
+                ;;
+            --emb_out)
+                other_args+=("$1")
+                shift
+                ;;
+            --*)
+                print_error "Unknown option: $1"
+                echo
+                show_usage
+                exit 1
+                ;;
+            *)
+                input_files+=("$1")
+                shift
+                ;;
+        esac
+    done
+    
+    # Validate input files
+    validate_input_files "${input_files[@]}" || exit 1
+    echo
+    
+    # Check if output_dir is specified
+    if [[ ! " ${other_args[*]} " =~ " --output_dir " ]]; then
+        print_error "Missing required argument: --output_dir"
+        echo
+        show_usage
+        exit 1
+    fi
+    
+    # Run BBERT inference
+    print_info "Starting BBERT inference..."
+    echo
+    
+    python source/inference.py "${input_files[@]}" "${other_args[@]}"
+    
+    if [ $? -eq 0 ]; then
+        echo
+        print_success "BBERT analysis completed successfully!"
+    else
+        echo
+        print_error "BBERT analysis failed"
+        exit 1
+    fi
+}
+
+# Check if we're in the right directory
+if [ ! -f "source/inference.py" ]; then
+    print_error "BBERT inference script not found"
+    print_info "Please run this script from the BBERT root directory"
+    exit 1
+fi
+
+# Run main function
+main "$@"
