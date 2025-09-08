@@ -24,11 +24,11 @@ dependencies:
   - numpy<2  # Fix NumPy compatibility issue
   # Python package installer
   - pip
-  # Install remaining packages via pip
+  # Install remaining packages via pip with compatible versions
   - pip:
       - datasets
       - huggingface_hub  
       - safetensors
-      - tokenizers
+      - tokenizers>=0.11.1,<0.14  # Compatible with transformers 4.30.2
       - torchinfo
-      - pynvml  # Optional, for compatibility (will be ignored on Mac)
+      - nvidia-ml-py  # Replace deprecated pynvml
