@@ -198,6 +198,7 @@ echo OPTIONS:
 echo     --output_dir DIR    Directory to save output files (required)
 echo     --batch_size N      Batch size for processing (default: 1024)
 echo     --emb_out          Include sequence embeddings in output (warning: large files)
+echo     --max_reads N      Maximum number of reads to process (default: all reads)
 echo     --help             Show this help message
 echo     --check            Run system checks only (don't process files)
 echo.
@@ -254,6 +255,12 @@ if "%1"=="--output_dir" (
     goto parse_args
 )
 if "%1"=="--batch_size" (
+    set "other_args=!other_args! %1 %2"
+    shift
+    shift
+    goto parse_args
+)
+if "%1"=="--max_reads" (
     set "other_args=!other_args! %1 %2"
     shift
     shift

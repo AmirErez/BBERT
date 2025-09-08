@@ -221,49 +221,29 @@ validate_input_files() {
 
 # Function to show usage
 show_usage() {
-    cat << EOF
-BBERT - BERT for Bacterial DNA Classification
-
-USAGE:
-    bbert <input_files...> --output_dir <directory> [OPTIONS]
-
-EXAMPLES:
-    # Single file
-    bbert example/sample.fasta --output_dir results
-    
-    # Multiple files
-    bbert file1.fasta file2.fastq.gz --output_dir results --batch_size 512
-    
-    # With embeddings (large output files)
-    bbert example/*.fasta.gz --output_dir results --emb_out
-    
-    # All example files
-    bbert example/Pseudomonas_*.fasta.gz example/Saccharomyces_*.fasta.gz --output_dir results
-
-OPTIONS:
-    --output_dir DIR    Directory to save output files (required)
-    --batch_size N      Batch size for processing (default: 1024)
-    --emb_out          Include sequence embeddings in output (warning: large files)
-    --help             Show this help message
-    --check            Run system checks only (don't process files)
-
-SYSTEM REQUIREMENTS:
-    - Python 3.10+
-    - PyTorch, Transformers, BioPython, pandas, numpy, pyarrow
-    - Git LFS for model files
-    - GPU recommended but not required
-
-For more information, see: https://github.com/AmirErez/BBERT
-EOF
+    echo "BBERT - BERT for Bacterial DNA Classification"
+    echo
+    echo "USAGE:"
+    echo "    bbert <arguments...>    (same as: python source/inference.py <arguments...>)"
+    echo "    bbert --help           Show detailed help and examples"  
+    echo "    bbert --check          Run system checks only"
+    echo
+    echo "This is a convenience wrapper that runs system checks before calling inference.py"
+    echo "For full help, examples, and argument details, run: bbert --help"
+    echo
 }
 
 # Main function
 main() {
-    # Parse arguments to check for help or check flags
+    # Handle special flags first
     for arg in "$@"; do
         case $arg in
             --help|-h)
-                show_usage
+                # Show inference.py help with wrapper context
+                echo "BBERT Wrapper - System checks + inference"
+                echo "=========================================="
+                echo
+                python source/inference.py --help
                 exit 0
                 ;;
             --check)
@@ -281,6 +261,14 @@ main() {
         esac
     done
     
+    # Basic validation - need some arguments
+    if [ $# -eq 0 ]; then
+        print_error "No arguments provided"
+        echo
+        show_usage
+        exit 1
+    fi
+    
     # Show header
     echo
     echo "🧬 BBERT - BERT for Bacterial DNA Classification"
@@ -295,50 +283,29 @@ main() {
     check_gpu
     echo
     
-    # Parse arguments to extract files
-    input_files=()
-    other_args=()
-    
-    while [[ $# -gt 0 ]]; do
-        case $1 in
-            --output_dir|--batch_size)
-                other_args+=("$1" "$2")
-                shift 2
-                ;;
-            --emb_out)
-                other_args+=("$1")
-                shift
-                ;;
-            --*)
-                print_error "Unknown option: $1"
-                echo
-                show_usage
-                exit 1
-                ;;
-            *)
-                input_files+=("$1")
-                shift
-                ;;
-        esac
+    # Count input files (arguments not starting with --)
+    file_count=0
+    for arg in "$@"; do
+        if [[ ! "$arg" =~ ^-- ]] && [[ ! "$arg" =~ ^- ]]; then
+            ((file_count++))
+        fi
     done
     
-    # Validate input files
-    validate_input_files "${input_files[@]}" || exit 1
-    echo
-    
-    # Check if output_dir is specified
-    if [[ ! " ${other_args[*]} " =~ " --output_dir " ]]; then
-        print_error "Missing required argument: --output_dir"
+    if [ $file_count -eq 0 ]; then
+        print_error "No input files specified"
         echo
         show_usage
         exit 1
     fi
     
-    # Run BBERT inference
+    print_success "${file_count} input file(s) specified"
+    echo
+    
+    # Run BBERT inference - pass all arguments directly to Python script
     print_info "Starting BBERT inference..."
     echo
     
-    python source/inference.py "${input_files[@]}" "${other_args[@]}"
+    python source/inference.py "$@"
     
     if [ $? -eq 0 ]; then
         echo

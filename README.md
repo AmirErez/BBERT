@@ -200,14 +200,14 @@ python bbert.py --check
 ./bbert example/Pseudo*.fasta.gz --output_dir example/ --batch_size 512
 ```
 
-**With embeddings (warning: large files):**
+**With embeddings (warning: large files, therefore we invoke the max_reads switch to process only the first 1000 reads from each file):**
 ```bash
 ./bbert \
     example/Pseudomonas_aeruginosa_R1.fasta.gz \
     example/Pseudomonas_aeruginosa_R2.fasta.gz \
     example/Saccharomyces_paradoxus_R1.fasta.gz \
     example/Saccharomyces_paradoxus_R2.fasta.gz \
-    --output_dir example --emb_out
+    --output_dir example --emb_out --max_reads 1000
 ```
 
 #### What the Executables Check:
@@ -267,6 +267,7 @@ python source/inference.py \
 - `--output_dir`: Directory to save output Parquet files (required)
 - `--batch_size`: Batch size for processing (default: 1024)
 - `--emb_out`: Include sequence embeddings in output (optional, warning: slow and large files)
+- `--max_reads`: Maximum number of reads to process (optional, default: process all reads)
 
 ## 3. Output Format
 

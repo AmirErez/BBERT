@@ -233,6 +233,7 @@ OPTIONS:
     --output_dir DIR    Directory to save output files (required)
     --batch_size N      Batch size for processing (default: 1024)
     --emb_out          Include sequence embeddings in output (warning: large files)
+    --max_reads N      Maximum number of reads to process (default: all reads)
     --help             Show this help message
     --check            Run system checks only (don't process files)
 
@@ -272,7 +273,11 @@ def main():
     """Main function"""
     # Handle special flags first
     if '--help' in sys.argv or '-h' in sys.argv:
-        show_usage()
+        # Show inference.py help with wrapper context
+        print("BBERT Wrapper - System checks + inference")
+        print("==========================================")
+        print()
+        subprocess.run([sys.executable, 'source/inference.py', '--help'])
         return 0
     
     if '--check' in sys.argv:
@@ -305,44 +310,35 @@ def main():
         print_error("System checks failed. Use --check for detailed diagnostics.")
         return 1
     
-    # Parse arguments
-    parser = argparse.ArgumentParser(add_help=False)  # We handle --help manually
-    parser.add_argument('files', nargs='*', help='Input files')
-    parser.add_argument('--output_dir', required=True, help='Output directory')
-    parser.add_argument('--batch_size', type=int, default=1024, help='Batch size')
-    parser.add_argument('--emb_out', action='store_true', help='Include embeddings')
-    
-    try:
-        args = parser.parse_args()
-    except SystemExit:
-        print_error("Invalid arguments")
+    # Basic validation - need some arguments
+    if len(sys.argv) <= 1:
+        print_error("No arguments provided")
         print()
-        show_usage()
+        print("USAGE: python bbert.py <arguments...> (same as: python source/inference.py <arguments...>)")
+        print("For full help: python bbert.py --help")
         return 1
     
-    # Validate input files
-    if not validate_input_files(args.files):
+    # Count input files (arguments not starting with --)
+    file_count = 0
+    for arg in sys.argv[1:]:  # Skip script name
+        if not arg.startswith('--') and not arg.startswith('-'):
+            file_count += 1
+    
+    if file_count == 0:
+        print_error("No input files specified")
+        print()
+        print("For help: python bbert.py --help")
         return 1
     
+    print_success(f"{file_count} input file(s) specified")
     print()
     
-    # Build command for inference script
-    cmd = [
-        sys.executable, 'source/inference.py',
-        *args.files,
-        '--output_dir', args.output_dir,
-        '--batch_size', str(args.batch_size)
-    ]
-    
-    if args.emb_out:
-        cmd.append('--emb_out')
-    
-    # Run BBERT inference
+    # Run BBERT inference - pass all arguments directly to inference.py
     print_info("Starting BBERT inference...")
     print()
     
     try:
-        result = subprocess.run(cmd, check=True)
+        result = subprocess.run([sys.executable, 'source/inference.py'] + sys.argv[1:], check=True)
         print()
         print_success("BBERT analysis completed successfully!")
         return 0

@@ -56,12 +56,76 @@ elif hidden_size == 768:
     frame_class_model_path = f'{bbert_dir}/emb_class_frame/models/classifier_model_2000K_37e.pth'
     class_model_path = f'{bbert_dir}/emb_class_coding/models/emb_coding_model_768_3906K_50e/epoch_46.pt'
     
-# Argument parsing
-parser = argparse.ArgumentParser(description="Run scoring on a FASTA, FASTQ or GZIP files and save the output dir.")
-parser.add_argument("files", nargs='+', type=str, help="List of input file paths to process (can be relative or absolute paths)")
-parser.add_argument("--output_dir", type=str, required=True, help="Directory to save output files")
-parser.add_argument("--batch_size", type=int, default=1024, help="Batch size to use for processing")
-parser.add_argument("--emb_out", action='store_true', help="Flag to save or return embedding output")
+# Argument parsing with detailed help
+description = """
+BBERT - BERT for Bacterial DNA Classification
+
+BBERT is a BERT-based transformer model for DNA sequence analysis that performs:
+- Bacterial vs. non-bacterial classification  
+- Reading frame prediction (6 frames: +1,+2,+3,-1,-2,-3)
+- Coding vs. non-coding sequence classification
+
+Supports FASTA, FASTQ, and compressed (.gz) input files.
+"""
+
+epilog = """
+EXAMPLES:
+  # Single file
+  python source/inference.py example/sample.fasta --output_dir results
+  
+  # Multiple files  
+  python source/inference.py file1.fasta file2.fastq.gz --output_dir results --batch_size 512
+  
+  # Using wildcards
+  python source/inference.py example/*.fasta.gz --output_dir results
+  
+  # With embeddings (warning: large files)
+  python source/inference.py example/Pseudomonas_*.fasta.gz --output_dir results --emb_out
+  
+  # Process limited reads for testing
+  python source/inference.py large_file.fasta.gz --output_dir test --max_reads 1000
+  
+  # All example files with embeddings and read limit
+  python source/inference.py example/Pseudomonas_*.fasta.gz example/Saccharomyces_*.fasta.gz --output_dir results --emb_out --max_reads 5000
+
+OUTPUT FILES:
+  - Without --emb_out: {filename}_scores_len.parquet
+  - With --emb_out: {filename}_scores_len_emb.parquet (much larger)
+
+OUTPUT COLUMNS:
+  - id: Sequence identifier
+  - len: Sequence length  
+  - loss: Cross-entropy loss value
+  - bact_prob: Bacterial classification probability (0-1)
+  - frame_prob: Reading frame probabilities (array of 6 values)
+  - coding_prob: Coding sequence probability (0-1)  
+  - embedding: Sequence embeddings (only with --emb_out)
+
+SYSTEM REQUIREMENTS:
+  - Python 3.10+
+  - PyTorch, Transformers, BioPython, pandas, numpy, pyarrow
+  - GPU recommended (CUDA/MPS) but CPU supported
+  - Git LFS for model files
+
+For more information: https://github.com/AmirErez/BBERT
+"""
+
+parser = argparse.ArgumentParser(
+    description=description,
+    epilog=epilog,
+    formatter_class=argparse.RawDescriptionHelpFormatter
+)
+
+parser.add_argument("files", nargs='+', type=str, 
+                   help="Input file paths (FASTA/FASTQ/GZ). Supports wildcards and multiple files.")
+parser.add_argument("--output_dir", type=str, required=True,
+                   help="Directory to save output Parquet files (required)")
+parser.add_argument("--batch_size", type=int, default=1024,
+                   help="Batch size for processing (default: 1024)")
+parser.add_argument("--emb_out", action='store_true',
+                   help="Include sequence embeddings in output (warning: slow and large files)")
+parser.add_argument("--max_reads", type=int,
+                   help="Maximum number of reads to process per file (default: process all reads)")
 
 args = parser.parse_args()
 
@@ -69,6 +133,7 @@ input_files = args.files
 output_dir = args.output_dir
 batch_size = args.batch_size
 emb_out = args.emb_out
+max_reads = args.max_reads
 chunk_size = batch_size * 2
 
 os.makedirs(output_dir, exist_ok=True)
@@ -161,10 +226,12 @@ if __name__ == "__main__":
             output_path = os.path.join(output_dir, f"{base_name}_scores_len.parquet")
             
         logger.info(f"Processing file: {dataset_path}")
-        dataset = FastqIterableDataset(dataset_path, chunk_size=chunk_size, max_reads=data_len)
+        dataset = FastqIterableDataset(dataset_path, chunk_size=chunk_size, max_reads=max_reads)
         
         seq_lens, data_len = dataset.get_stats()
         logger.info(f"{len(seq_lens)} reads, {min(seq_lens)} <= len <= {max(seq_lens)}")
+        if max_reads and data_len >= max_reads:
+            logger.info(f"Limited to first {data_len} reads (--max_reads {max_reads})")
         batches_num = data_len//batch_size
         
         # Configure DataLoader parameters based on platform
