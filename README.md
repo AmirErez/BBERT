@@ -1,6 +1,6 @@
-﻿# BBERT: BERT for Bacterial DNA Classification
+﻿![BBERT](./logo.png)
 
-![BBERT](./logo.png)
+# BBERT: BERT for Bacterial DNA Classification
 
 BBERT is a BERT-based transformer model fine-tuned for DNA sequence analysis, specifically designed for bacterial sequence classification and genomic feature prediction. The model performs three key classification tasks:
 
@@ -52,7 +52,7 @@ sudo port install git-lfs    # Using MacPorts
 **Initialize Git LFS (all platforms):**
 ```bash
 git lfs install
-git lfs pull # Downloads the model files
+git lfs pull 
 ```
 #### Option 2: From Zenodo
 TBA
@@ -62,21 +62,17 @@ TBA
 **Prerequisites:** You need conda or mamba installed on your system:
 - **Conda:** Download from https://conda.io/miniconda.html or https://www.anaconda.com/
 - **Mamba:** Faster alternative, install with `conda install mamba -n base -c conda-forge`
+All conda commands can be interchanged to mamba commands depending on your install.
 
 #### For Linux/Windows with CUDA:
 ```bash
 conda env create -f BBERT_env.yml  
-# OR for faster installation:
-mamba env create -f BBERT_env.yml
 ```
 
 #### For Mac (recommended):
 ```bash
 conda env create -f BBERT_env_mac.yml
 conda activate BBERT_mac
-# OR for faster installation:
-mamba env create -f BBERT_env_mac.yml
-mamba activate BBERT_mac
 ```
 
 #### Manual installation for Mac/CPU-only systems:
@@ -285,6 +281,8 @@ The inference script outputs results to a Parquet file containing:
 | `coding_prob` | Coding sequence probability (0-1) |
 
 ### Reading Results
+In the python console, 
+
 ```python
 import pandas as pd
 df = pd.read_parquet('example/example_scores_len.parquet')
@@ -403,6 +401,10 @@ python source/visualize_embeddings.py \
   --output_name bacterial_vs_eukaryotic \
   --max_samples 500
 
+The output will be in example/bacterial_vs_eukaryotic.png and .pdf, and looks like this:
+
+![Bacteria vs. Eukaryotic t-SNE](./example/bacterial_vs_eukaryotic.png)
+
 # Use PCA (faster alternative to t-SNE)
 python source/visualize_embeddings.py \
   --files "example/Pseudomonas_aeruginosa_R1_scores_len_emb.parquet,example/Saccharomyces_paradoxus_R1_scores_len_emb.parquet" \
@@ -412,6 +414,8 @@ python source/visualize_embeddings.py \
   --method pca \
   --max_samples 500
 ```
+
+The output will be in example/bacterial_vs_eukaryotic_pca.png and .pdf
 
 ### Usage Requirements
 
