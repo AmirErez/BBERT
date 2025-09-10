@@ -401,10 +401,6 @@ python source/visualize_embeddings.py \
   --output_name bacterial_vs_eukaryotic \
   --max_samples 500
 
-The output will be in example/bacterial_vs_eukaryotic.png and .pdf, and looks like this:
-
-![Bacteria vs. Eukaryotic t-SNE](./example/bacterial_vs_eukaryotic.png)
-
 # Use PCA (faster alternative to t-SNE)
 python source/visualize_embeddings.py \
   --files "example/Pseudomonas_aeruginosa_R1_scores_len_emb.parquet,example/Saccharomyces_paradoxus_R1_scores_len_emb.parquet" \
@@ -414,8 +410,8 @@ python source/visualize_embeddings.py \
   --method pca \
   --max_samples 500
 ```
-
-The output will be in example/bacterial_vs_eukaryotic_pca.png and .pdf
+The t-SNE output will be in example/bacterial_vs_eukaryotic.png and .pdf, and looks like this:
+![Bacteria vs. Eukaryotic t-SNE](./example/bacterial_vs_eukaryotic.png)
 
 ### Usage Requirements
 
