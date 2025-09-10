@@ -1,5 +1,7 @@
 ﻿# BBERT: BERT for Bacterial DNA Classification
 
+![BBERT](./logo.png)
+
 BBERT is a BERT-based transformer model fine-tuned for DNA sequence analysis, specifically designed for bacterial sequence classification and genomic feature prediction. The model performs three key classification tasks:
 
 - **Bacterial Classification**: Distinguishes bacterial DNA from non-bacterial sequences
