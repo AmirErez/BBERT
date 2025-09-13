@@ -64,9 +64,21 @@ TBA
 - **Mamba:** Faster alternative, install with `conda install mamba -n base -c conda-forge`
 All conda commands can be interchanged to mamba commands depending on your install.
 
-#### For Linux/Windows with CUDA:
+#### For Linux with CUDA:
 ```bash
 conda env create -f BBERT_env.yml  
+```
+
+#### For Windows with NVIDIA GPU:
+```bash
+conda env create -f BBERT_env_windows.yml
+conda activate BBERT_windows
+```
+
+#### For Windows CPU-only:
+```bash
+conda env create -f BBERT_env_windows_cpu.yml
+conda activate BBERT_windows_cpu
 ```
 
 #### For Mac (recommended):
@@ -136,7 +148,22 @@ This test uses known ground truth sequences:
 **Expected results:**
 Perfect classification: All 10 sequences correctly classified
 
-#### Step 3: Test with Example Data
+#### Step 3: Run Frame Prediction Tests (Optional)
+Validate BBERT's reading frame and coding predictions:
+
+```bash
+python source/test_frame_accuracy.py
+```
+
+This test generates reads from a known bacterial gene (*E. coli* RpoS) in all 6 reading frames and validates:
+- Frame prediction accuracy (should be >90%)
+- Bacterial classification (should be >85%)  
+- Coding sequence prediction (should be >90%)
+
+**Expected results:**
+All tests should pass with high accuracy
+
+#### Step 4: Test with Example Data
 Once tests pass, try processing example data:
 
 **Unix/Linux/Mac:**
@@ -225,7 +252,7 @@ It processes FASTA/FASTQ/GZIP input files, computes probabilities, loss values, 
 ### Features
 - Loads a pretrained BBERT model and three classification heads:
   - Bacterial classifier (bacteria vs. non-bacteria)
-  - Frame classifier (6 possible reading frames)
+  - Frame classifier (6 possible reading frames: output positions 0-5 map to frames -1,-3,-2,+1,+3,+2)
   - Coding classifier (coding vs. non-coding DNA)
 - Supports input formats: `.fasta`, `.fastq`, `.gz`
 - Outputs results to `.parquet` with:
@@ -277,7 +304,7 @@ The inference script outputs results to a Parquet file containing:
 | `len` | Sequence length |
 | `loss` | Cross-entropy loss value |
 | `bact_prob` | Bacterial classification probability (0-1) |
-| `frame_prob` | Reading frame probabilities (array of 6 values for frames +1,+2,+3,-1,-2,-3) |
+| `frame_prob` | Reading frame probabilities (array of 6 values: positions 0-5 correspond to frames -1,-3,-2,+1,+3,+2) |
 | `coding_prob` | Coding sequence probability (0-1) |
 
 ### Reading Results
@@ -293,7 +320,9 @@ bacterial_seqs = df[df['bact_prob'] > 0.5]
 
 # Get most likely reading frame for each sequence
 import numpy as np
-df['predicted_frame'] = df['frame_prob'].apply(lambda x: np.argmax(x))
+# Frame mapping: positions 0-5 correspond to frames [-1, -3, -2, +1, +3, +2]
+frame_mapping = [-1, -3, -2, +1, +3, +2]
+df['predicted_frame'] = df['frame_prob'].apply(lambda x: frame_mapping[np.argmax(x)])
 ```
 
 ## 4. Post-Processing BBERT Outputs
@@ -346,7 +375,6 @@ python source/merge_paired_scores.py \
 - Only one read ≥100bp: Use that read's scores  
 - Both reads <100bp: Exclude from long scores file
 
-
 ### Final Output Format
 
 Both post-processing scripts produce consistent TSV.GZ files:
@@ -360,6 +388,54 @@ Both post-processing scripts produce consistent TSV.GZ files:
 
 **Short scores file** (`*_good_short_scores.tsv.gz`):
 Contains metadata for reads/pairs excluded due to length filtering.
+
+
+### Extracting Coding Amino Acid Sequences
+
+To extract amino acid sequences from reads predicted as coding sequences, use the coding amino acid extraction script. This script separates bacterial and non-bacterial coding sequences into two output files:
+
+```bash
+# Basic usage - extract coding sequences as amino acids
+python source/extract_coding_AA.py \
+    --input example/example.fasta \
+    --parquet example/example_scores_len.parquet \
+    --out_bact bacterial_proteins.fasta \
+    --out_nonbact nonbacterial_proteins.fasta
+
+# With custom probability thresholds
+python source/extract_coding_AA.py \
+    --input example/Pseudomonas_aeruginosa_R1.fasta.gz \
+    --parquet example/Pseudomonas_aeruginosa_R1_scores_len.parquet \
+    --out_bact pseudomonas_bacterial_proteins.fasta \
+    --out_nonbact pseudomonas_nonbacterial_proteins.fasta \
+    --bacterial_threshold 0.8 \
+    --coding_threshold 0.7
+```
+
+**What this script does:**
+- Reads BBERT classification results and original sequence files
+- Filters for sequences with high coding probability
+- Separates coding sequences into bacterial and non-bacterial based on bacterial probability
+- Determines the most likely reading frame using BBERT's frame predictions
+- Translates DNA sequences to amino acids using BioPython
+- Outputs protein sequences in two separate FASTA files with prediction metadata
+
+**Arguments:**
+- `--input`: Original sequence file (FASTA/FASTQ, compressed or uncompressed)  
+- `--parquet`: BBERT parquet results file
+- `--out_bact`: Output amino acid FASTA file for bacterial coding sequences
+- `--out_nonbact`: Output amino acid FASTA file for non-bacterial coding sequences
+- `--bacterial_threshold`: Minimum bacterial probability (default: 0.5)
+- `--coding_threshold`: Minimum coding probability (default: 0.5)
+
+**Output FASTA headers include:**
+```
+>sequence_id | bact_prob=0.952 | coding_prob=0.971
+```
+
+This approach allows post-processing extraction without modifying the main inference pipeline or increasing memory usage.
+
+
 
 ## 5. Visualizing BBERT Embeddings
 
@@ -435,7 +511,7 @@ The script creates 4-panel plots saved in both PNG and PDF formats that reveal:
 
 1. **Sample/Species Separation**: How well BBERT separates different samples using your provided labels
 2. **Coding Classification**: Distinction between protein-coding and non-coding DNA sequences based on BBERT predictions
-3. **Reading Frame Grouping**: Clustering of sequences by BBERT's predicted reading frames (+1,+2,+3,-1,-2,-3)
+3. **Reading Frame Grouping**: Clustering of sequences by BBERT's predicted reading frames (positions 0-5 map to frames -1,-3,-2,+1,+3,+2)
 4. **Sample Distribution**: Comparison between different samples (e.g., R1/R2 reads, different conditions)
 
 ### Interpreting Results
@@ -467,7 +543,99 @@ If visualization fails:
 pip install matplotlib seaborn scikit-learn
 ```
 
-## 6. Troubleshooting
+## 6. Genomic Accuracy Analysis
+
+For comprehensive evaluation of BBERT's performance on real genomic data, use the genomic accuracy analysis script. This tool generates synthetic reads from annotated genomes and evaluates BBERT's classification accuracy across multiple tasks.
+
+### Usage
+
+```bash
+mkdir -p tests
+# Analyze bacterial genome (E. coli example)
+python source/test_genomic_accuracy.py \
+    --fasta example/GCF_000005845.fasta \
+    --gff example/GCF_000005845.gtf \
+    --is_bact true \
+    --taxon "E.coli" \
+    --reads_per_cds 1 \
+    --output_dir tests \
+    --verbose
+
+# Analyze eukaryotic genome (S. cerevisiae example)
+python source/test_genomic_accuracy.py \
+    --fasta example/GCF_000146045.fasta \
+    --gff example/GCF_000146045.gff \
+    --is_bact false \
+    --taxon "S.cerevisiae" \
+    --output_dir tests \
+    --reads_per_cds 1
+
+# Analyze archaeal genome (M. smithii example)
+python source/test_genomic_accuracy.py \
+    --fasta example/GCF_000016525.fasta \
+    --gff example/GCF_000016525.gtf \
+    --is_bact true \
+    --taxon "M.smithii" \
+    --output_dir tests \
+    --reads_per_cds 2
+```
+
+### What This Analysis Does
+
+The genomic accuracy analysis performs comprehensive evaluation by:
+
+- **Generating coding reads** from CDS regions with correct biological frame labels
+- **Generating non-coding reads** proportional to genome composition (intergenic regions)
+- **Running BBERT inference** on all generated reads
+- **Reporting detailed accuracy metrics** for:
+  - Coding vs non-coding sequence classification
+  - Reading frame prediction (6-frame accuracy) 
+  - Bacterial vs non-bacterial classification with bias correction
+
+### Key Parameters
+
+- `--reads_per_cds`: Number of reads per CDS
+  - If ≥ 6: Distributed evenly across all 6 reading frames
+  - If < 6: Randomly selects frames (e.g., `--reads_per_cds 1` generates 1 read per CDS from a random frame)
+- `--noncoding_reads -1`: Auto-calculate non-coding reads proportional to genome composition
+- `--noncoding_reads N`: Override with specific number of non-coding reads
+- `--verbose`: Show detailed BBERT inference progress
+
+### Advanced Features
+
+**Bias Correction**: The analysis includes correction for systematic bacterial classification bias where:
+- Noncoding sequences from bacterial genomes are often misclassified as non-bacterial
+- Coding sequences from non-bacterial genomes are often misclassified as bacterial
+
+The script reports both:
+- **Original approach**: Standard probability thresholds
+- **Custom approach**: Uses loss score threshold (1.3654) for problematic cases
+- **Improvement metrics**: Shows how many additional predictions are correct with bias correction
+
+### Sample Output
+
+```
+BACTERIAL CLASSIFICATION:
+  ORIGINAL APPROACH (standard bact_prob >= 0.5 threshold for all):
+    Coding sequences:     800/900 (88.9%)
+    Non-coding sequences: 45/100 (45.0%)
+
+  CUSTOM APPROACH (loss threshold 1.3654 for problematic cases):
+    Coding sequences:     800/900 (88.9%) [standard 0.5 threshold]
+    Non-coding sequences: 85/100 (85.0%) [loss 1.3654 threshold]
+
+  IMPROVEMENT: +40 more correct predictions with custom approach
+```
+
+### Expected Results
+
+- **Frame accuracy**: >90% for well-annotated genomes
+- **Coding classification**: >85% overall accuracy
+- **Bacterial classification**: >80% (varies by genome, improves with bias correction)
+
+Results will vary depending on genome quality, annotation completeness, and organism-specific characteristics.
+
+## 7. Troubleshooting
 
 ### Installing Git
 
@@ -547,6 +715,14 @@ pip install tokenizers==0.13.3
 - Verify CUDA installation: `nvidia-smi`
 - Reinstall PyTorch with CUDA support
 - For Mac: The model will automatically use MPS (Metal Performance Shaders)
+
+#### Issue: Windows environment creation fails with Linux-specific packages
+**Problem:** `BBERT_env.yml` contains Linux-specific packages that aren't available on Windows.
+**Solution:** Use the Windows-specific environment file:
+```bash
+conda env create -f BBERT_env_windows.yml
+conda activate BBERT_windows
+```
 
 #### Issue: "Out of memory" errors
 **Solutions:**

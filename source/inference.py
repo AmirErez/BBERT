@@ -264,6 +264,7 @@ if __name__ == "__main__":
         
         if emb_out:
             emb_array = np.empty((data_len, seq_len, hidden_size), dtype=np.float16)
+            
         
         batch_start = 0
         inference_start_time = time.time()
