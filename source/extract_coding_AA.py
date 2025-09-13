@@ -77,11 +77,14 @@ def get_best_reading_frame(frame_probs):
 
 def translate_sequence(seq_str, frame):
     """
-    Translate DNA sequence to amino acids in the specified reading frame.
+    Translate DNA sequence to amino acids based on BBERT's frame prediction.
+    
+    BBERT frame predictions [-1, -3, -2, +1, +3, +2] correspond to biological reading frames.
+    The sequence needs to be translated in the correct reading frame.
     
     Args:
-        seq_str: DNA sequence string
-        frame: Reading frame (+1, +2, +3, -1, -2, -3)
+        seq_str: DNA sequence string from the original data
+        frame: Reading frame predicted by BBERT (-1, -3, -2, +1, +3, +2)
     
     Returns:
         str: Amino acid sequence
@@ -89,14 +92,28 @@ def translate_sequence(seq_str, frame):
     seq = Seq(seq_str.upper())
     
     if frame > 0:
-        # Forward frames
-        start_pos = frame - 1  # 0-based indexing
-        coding_seq = seq[start_pos:]
+        # Positive frames: translate forward strand
+        if frame == 1:
+            # Frame +1: start at position 0
+            coding_seq = seq
+        elif frame == 2:
+            # Frame +2: start at position 1  
+            coding_seq = seq[1:]
+        elif frame == 3:
+            # Frame +3: start at position 2
+            coding_seq = seq[2:]
     else:
-        # Reverse frames
+        # Negative frames: translate reverse complement strand
         rev_comp = seq.reverse_complement()
-        start_pos = abs(frame) - 1  # 0-based indexing
-        coding_seq = rev_comp[start_pos:]
+        if frame == -1:
+            # Frame -1: start at position 0 of reverse complement
+            coding_seq = rev_comp
+        elif frame == -2:
+            # Frame -2: start at position 1 of reverse complement
+            coding_seq = rev_comp[1:]
+        elif frame == -3:
+            # Frame -3: start at position 2 of reverse complement
+            coding_seq = rev_comp[2:]
     
     # Translate to amino acids
     aa_seq = coding_seq.translate()
