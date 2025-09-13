@@ -148,22 +148,8 @@ This test uses known ground truth sequences:
 **Expected results:**
 Perfect classification: All 10 sequences correctly classified
 
-#### Step 3: Run Frame Prediction Tests (Optional)
-Validate BBERT's reading frame and coding predictions:
 
-```bash
-python source/test_frame_accuracy.py
-```
-
-This test generates reads from a known bacterial gene (*E. coli* RpoS) in all 6 reading frames and validates:
-- Frame prediction accuracy (should be >90%)
-- Bacterial classification (should be >85%)  
-- Coding sequence prediction (should be >90%)
-
-**Expected results:**
-All tests should pass with high accuracy
-
-#### Step 4: Test with Example Data
+#### Step 3: Test with Example Data
 Once tests pass, try processing example data:
 
 **Unix/Linux/Mac:**
@@ -627,13 +613,7 @@ BACTERIAL CLASSIFICATION:
   IMPROVEMENT: +40 more correct predictions with custom approach
 ```
 
-### Expected Results
 
-- **Frame accuracy**: >90% for well-annotated genomes
-- **Coding classification**: >85% overall accuracy
-- **Bacterial classification**: >80% (varies by genome, improves with bias correction)
-
-Results will vary depending on genome quality, annotation completeness, and organism-specific characteristics.
 
 ## 7. Troubleshooting
 
