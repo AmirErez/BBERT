@@ -44,9 +44,14 @@ sudo yum install git-lfs      # CentOS/RHEL/Fedora
 **On Mac:**
 Download and install Git LFS from https://git-lfs.com or use a package manager:
 ```bash
-brew install git-lfs         # Using Homebrew
+# Using Homebrew
+brew install git-lfs
+
+
 # OR
-sudo port install git-lfs    # Using MacPorts
+
+# Using MacPorts
+sudo port install git-lfs
 ```
 
 **Initialize Git LFS (all platforms):**
