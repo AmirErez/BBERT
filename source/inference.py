@@ -26,9 +26,9 @@ from emb_class_frame.architecture import BertClassifier
 os.environ["WANDB_DISABLED"] = "true"
 
 slurm_cpus = int(os.environ.get("SLURM_CPUS_PER_TASK", 1))
-# Mac has multiprocessing issues with DataLoader, use single worker
+# Mac and Windows have multiprocessing issues with DataLoader, use single worker
 import platform
-if platform.system() == "Darwin":  # macOS
+if platform.system() in ["Darwin", "Windows"]:  # macOS and Windows
     num_workers = 0
 else:
     num_workers = max(1, min(slurm_cpus, mp.cpu_count()) - 1)
