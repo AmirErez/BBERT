@@ -1,0 +1,33 @@
+name: BBERT_windows_cpu
+channels:
+  - pytorch
+  - conda-forge
+  - bioconda
+  - defaults
+dependencies:
+  - python=3.10
+  - pytorch-cpu
+  - torchvision
+  - torchaudio
+  - transformers=4.30.2
+  - biopython
+  - pandas
+  - numpy<2
+  - pyarrow
+  - scikit-learn
+  - seaborn
+  - tqdm
+  - pyyaml
+  - datasets
+  - huggingface_hub
+  - safetensors
+  - tokenizers=0.13.3
+  - pillow
+  - matplotlib
+  - git  # For Git LFS
+  - pip
+  - pip:
+      - psutil
+      - torchinfo
+      - accelerate
+      - protobuf
