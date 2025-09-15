@@ -9,7 +9,6 @@ dependencies:
   - pytorch-cpu
   - torchvision
   - torchaudio
-  - transformers=4.30.2
   - biopython
   - pandas
   - numpy<2
@@ -18,15 +17,16 @@ dependencies:
   - seaborn
   - tqdm
   - pyyaml
-  - datasets
-  - huggingface_hub
-  - safetensors
-  - tokenizers=0.13.3
   - pillow
   - matplotlib
-  - git  # For Git LFS
+  - git
   - pip
   - pip:
+      - transformers==4.30.2
+      - datasets
+      - huggingface_hub
+      - safetensors
+      - tokenizers==0.13.3
       - psutil
       - torchinfo
       - accelerate
