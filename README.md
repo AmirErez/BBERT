@@ -10,6 +10,9 @@ BBERT is a BERT-based transformer model fine-tuned for DNA sequence analysis, sp
 
 The model processes short DNA sequences (100bp or longer) and outputs classification probabilities along with sequence embeddings for downstream analysis.
 
+See our manuscript
+[Manuscript](https://www.biorxiv.org/content/10.1101/2025.09.07.674730v1)
+
 ## System Requirements
 
 - **Python**: 3.10+
