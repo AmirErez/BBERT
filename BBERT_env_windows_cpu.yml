@@ -6,9 +6,6 @@ channels:
   - defaults
 dependencies:
   - python=3.10
-  - pytorch-cpu
-  - torchvision
-  - torchaudio
   - biopython
   - pandas
   - numpy<2
@@ -22,6 +19,9 @@ dependencies:
   - git
   - pip
   - pip:
+      - torch
+      - torchvision
+      - torchaudio
       - transformers==4.30.2
       - datasets
       - huggingface_hub
