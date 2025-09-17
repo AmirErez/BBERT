@@ -140,13 +140,28 @@ def run_tsne(embeddings, perplexity=30, n_iter=1000):
     n_samples = embeddings.shape[0]
     perplexity = min(perplexity, max(5, n_samples // 4))
     
-    tsne = TSNE(
-        n_components=2,
-        perplexity=perplexity,
-        max_iter=n_iter,
-        random_state=42,
-        verbose=1
-    )
+    # Check which parameter name to use for scikit-learn compatibility
+    import inspect
+    tsne_params = inspect.signature(TSNE.__init__).parameters
+    
+    if 'max_iter' in tsne_params:
+        # Newer scikit-learn versions
+        tsne = TSNE(
+            n_components=2,
+            perplexity=perplexity,
+            max_iter=n_iter,
+            random_state=42,
+            verbose=1
+        )
+    else:
+        # Older scikit-learn versions
+        tsne = TSNE(
+            n_components=2,
+            perplexity=perplexity,
+            n_iter=n_iter,
+            random_state=42,
+            verbose=1
+        )
     
     tsne_result = tsne.fit_transform(embeddings)
     print(f"t-SNE completed. Final embedding shape: {tsne_result.shape}")
