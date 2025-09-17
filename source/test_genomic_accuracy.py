@@ -1,18 +1,11 @@
 #!/usr/bin/env python3
 """
-Comprehensive genomic test for BBERT predictions (Version 2).
+Comprehensive genomic test for BBERT predictions.
 
-This is an improved version of test_genomic_accuracy.py that uses the 
-generate_annotated_reads.py script for cleaner data generation.
+Uses the generate_annotated_reads.py script for cleaner data generation.
 
 The test generates reads from both coding (CDS from GFF/GTF) and non-coding 
 (intergenic) regions of a genome, runs BBERT inference, and validates predictions.
-
-Key improvements:
-- Uses generate_annotated_reads.py for data generation
-- Cleaner separation of concerns
-- Better frame annotation accuracy
-- Simplified codebase
 """
 
 import os
@@ -240,7 +233,7 @@ def analyze_predictions(metadata_file, bbert_results_file, is_bacterial, logger)
         
         coding_df['predicted_frame'] = coding_df['frame_prob'].apply(get_predicted_frame)
         
-        # Compare predicted vs true frames
+        # Compare predicted vs true frames directly
         frame_matches = (coding_df['predicted_frame'] == coding_df['true_frame']).sum()
         frame_correct = frame_matches
         frame_accuracy = frame_matches / len(coding_df)

@@ -82,7 +82,7 @@ def calculate_true_frame(pos, phase):
     frame_offset = (phase - pos) % 3
     return frame_offset + 1
 
-def generate_coding_reads_with_frames(fasta_file, gff_file, reads_per_cds=20, read_length=100, is_bacterial=True):
+def generate_coding_reads_with_frames(fasta_file, gff_file, reads_per_cds=2, read_length=100, is_bacterial=True):
     """
     Generate coding reads with true frame annotations.
     
@@ -140,42 +140,78 @@ def generate_coding_reads_with_frames(fasta_file, gff_file, reads_per_cds=20, re
                 
             cds_count += 1
             
-            # Generate reads from this CDS
-            for read_idx in range(reads_per_cds):
-                if len(cds_seq) <= read_length:
-                    # Short CDS: use entire sequence
-                    read_seq = cds_seq
-                    read_start_in_cds = 0
-                else:
-                    # Long CDS: random position
-                    read_start_in_cds = random.randint(0, len(cds_seq) - read_length)
-                    read_seq = cds_seq[read_start_in_cds:read_start_in_cds + read_length]
+            # Get sense sequence (forward or reverse complement based on strand)
+            if strand == '+':
+                sense_seq = cds_seq
+            else:
+                sense_seq = str(Seq(cds_seq).reverse_complement())
+            
+            if len(sense_seq) < read_length:
+                continue
+            
+            # Generate reads from all 6 frames: +1, +2, +3, -1, -2, -3
+            # Note: reads_per_cds is the TOTAL number of reads from this CDS, not per frame
+            
+            # If reads_per_cds < 6, randomly select which frames to use for this CDS
+            # to ensure overall balance across all CDS regions
+            if reads_per_cds < 6:
+                frames_to_use = random.sample([1, 2, 3, -1, -2, -3], reads_per_cds)
+                frame_counts = {frame: 1 for frame in frames_to_use}
+            else:
+                # For larger numbers, distribute across all frames
+                per_frame = reads_per_cds // 6
+                remainder = reads_per_cds - per_frame * 6
+                frame_counts = {}
+                for i, frame in enumerate([1, 2, 3, -1, -2, -3]):
+                    frame_counts[frame] = per_frame + (1 if remainder > 0 else 0)
+                    if remainder > 0:
+                        remainder -= 1
+            
+            read_idx = 0
+            for frame in [1, 2, 3, -1, -2, -3]:
+                nthis = frame_counts.get(frame, 0)
+                if nthis == 0:
+                    continue
                 
-                # Calculate true reading frame for this position
-                true_frame = calculate_true_frame(read_start_in_cds, phase)
+                # Pick positions so (phase - pos) % 3 == |frame| - 1
+                f = abs(frame)
+                desired_offset = (phase - (f - 1)) % 3
+                max_pos = len(sense_seq) - read_length
+                if max_pos < 0:
+                    continue
+                    
+                valid_positions = [pos for pos in range(0, max_pos + 1) if (pos % 3) == desired_offset]
+                if not valid_positions:
+                    continue
                 
-                # Handle negative strand
-                if strand == '-':
-                    true_frame = -true_frame
-                    # For negative strand, we need reverse complement
-                    read_seq = str(Seq(read_seq).reverse_complement())
-                
-                # Create read data
-                read_data = {
-                    'read_id': f"coding_{chrom}_{start}_{end}_{strand}_{read_idx}",
-                    'sequence': read_seq,
-                    'is_coding': True,
-                    'is_bacterial': is_bacterial,
-                    'true_frame': true_frame,
-                    'chromosome': chrom,
-                    'cds_start': start,
-                    'cds_end': end,
-                    'strand': strand,
-                    'phase': phase,
-                    'read_start_in_cds': read_start_in_cds,
-                    'read_length': len(read_seq)
-                }
-                reads_data.append(read_data)
+                for _ in range(nthis):
+                    pos = random.choice(valid_positions)
+                    frag = sense_seq[pos:pos + read_length]
+                    
+                    # For negative frames, take reverse complement of fragment
+                    if frame > 0:
+                        read_seq = frag
+                    else:
+                        read_seq = str(Seq(frag).reverse_complement())
+                    
+                    read_idx += 1
+                    
+                    # Create read data
+                    read_data = {
+                        'read_id': f"coding_{chrom}_{start}_{end}_{strand}_{read_idx}_frame{frame:+d}",
+                        'sequence': read_seq,
+                        'is_coding': True,
+                        'is_bacterial': is_bacterial,
+                        'true_frame': frame,
+                        'chromosome': chrom,
+                        'cds_start': start,
+                        'cds_end': end,
+                        'strand': strand,
+                        'phase': phase,
+                        'read_start_in_cds': pos,
+                        'read_length': len(read_seq)
+                    }
+                    reads_data.append(read_data)
                 
             if cds_count % 1000 == 0:
                 logger.info(f"Processed {cds_count} CDS regions, generated {len(reads_data)} reads")
@@ -218,7 +254,8 @@ def generate_noncoding_reads(fasta_file, gff_file, num_reads, read_length=100, i
                 continue
                 
             feature_type = fields[2]
-            if feature_type not in ['CDS', 'exon']:
+            # Include all gene-related features to avoid generating reads from coding regions
+            if feature_type not in ['CDS', 'exon', 'gene', 'mRNA', 'transcript']:
                 continue
                 
             chrom = fields[0]
