@@ -546,29 +546,29 @@ For comprehensive evaluation of BBERT's performance on real genomic data, use th
 
 ```bash
 mkdir -p tests
-# Analyze bacterial genome (E. coli example)
+# Analyze bacterial genome (P.aeruginosa example)
 python source/test_genomic_accuracy.py \
-    --fasta example/GCF_000005845.fasta \
-    --gff example/GCF_000005845.gtf \
+    --fasta example/GCF_000016525_P_aeuroginosa.fasta \
+    --gtf example/GCF_000016525_P_aeuroginosa.gtf \
     --is_bact true \
-    --taxon "E.coli" \
+    --taxon "P.aeruginosa" \
     --reads_per_cds 1 \
     --output_dir tests \
     --verbose
 
-# Analyze eukaryotic genome (S. cerevisiae example)
+# Analyze eukaryotic genome (S.cerevisiae example)
 python source/test_genomic_accuracy.py \
-    --fasta example/GCF_000146045.fasta \
-    --gff example/GCF_000146045.gff \
+    --fasta example/GCF_000146045_S_cerevisiae.fasta \
+    --gff example/GCF_000146045S_cerevisiae.gff \
     --is_bact false \
     --taxon "S.cerevisiae" \
     --output_dir tests \
     --reads_per_cds 1
 
-# Analyze archaeal genome (M. smithii example)
+# Analyze archaeal genome (M.smithii example)
 python source/test_genomic_accuracy.py \
-    --fasta example/GCF_000016525.fasta \
-    --gff example/GCF_000016525.gtf \
+    --fasta example/GCF_000016525_M_smithii.fasta \
+    --gff example/GCF_000016525_M_smithii.gtf \
     --is_bact true \
     --taxon "M.smithii" \
     --output_dir tests \
