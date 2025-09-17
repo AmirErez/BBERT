@@ -548,8 +548,8 @@ For comprehensive evaluation of BBERT's performance on real genomic data, use th
 mkdir -p tests
 # Analyze bacterial genome (P.aeruginosa example)
 python source/test_genomic_accuracy.py \
-    --fasta example/GCF_000016525_P_aeuroginosa.fasta \
-    --gtf example/GCF_000016525_P_aeuroginosa.gtf \
+    --fasta example/GCF_000016525_P_aeruginosa.fasta \
+    --gtf example/GCF_000016525_P_aeruginosa.gtf \
     --is_bact true \
     --taxon "P.aeruginosa" \
     --reads_per_cds 1 \
