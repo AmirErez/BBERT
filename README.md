@@ -78,22 +78,27 @@ All conda commands can be interchanged to mamba commands depending on your insta
 conda env create -f BBERT_env.yml  
 ```
 
-#### For Windows with NVIDIA GPU:
+#### For Mac:
+```bash
+conda env create -f BBERT_env_mac.yml
+conda activate BBERT_mac
+```
+
+#### For Windows 
+Note that the windows version is the least well supported, we include it here for user convenience.
+BBERT is meant to run on linux machines and mac is close enough for the compatibility to be easy.
+In Windows, path separators have '\' instead of '/', and so will all need manual fixing to work.
+
+##### Windows with NVIDIA GPU:
 ```bash
 conda env create -f BBERT_env_windows.yml
 conda activate BBERT_windows
 ```
 
-#### For Windows CPU-only:
+##### Windows CPU-only:
 ```bash
 conda env create -f BBERT_env_windows_cpu.yml
 conda activate BBERT_windows_cpu
-```
-
-#### For Mac (recommended):
-```bash
-conda env create -f BBERT_env_mac.yml
-conda activate BBERT_mac
 ```
 
 #### Manual installation for Mac/CPU-only systems:
@@ -122,12 +127,7 @@ Immediately after installation, verify that everything is set up correctly:
 ./bbert --check
 ```
 
-**Windows:**
-```cmd
-bbert.bat --check
-```
-
-**Cross-platform (Python):**
+**Cross-platform including Windows (Python):**
 ```bash
 python bbert.py --check
 ```
@@ -166,12 +166,7 @@ Once tests pass, try processing example data:
 ./bbert example/example.fasta --output_dir example/ --batch_size 64
 ```
 
-**Windows:**
-```cmd
-bbert.bat example\example.fasta --output_dir example/ --batch_size 64
-```
-
-**Cross-platform (Python):**
+**Cross-platform including Windows (Python):**
 ```bash
 python bbert.py example/example.fasta --output_dir example/ --batch_size 64
 ```
@@ -191,8 +186,7 @@ print(df.head())
 BBERT provides user-friendly executables that automatically check your system and provide helpful error messages:
 
 **Unix/Linux/Mac:** `./bbert`
-**Windows:** `bbert.bat`  
-**Cross-platform:** `python bbert.py`
+**Cross-platform (including Windows):** `python bbert.py`
 
 #### System Diagnostics
 Before running analysis, check that everything is set up correctly:
@@ -201,8 +195,6 @@ Before running analysis, check that everything is set up correctly:
 # Unix/Linux/Mac
 ./bbert --check
 
-# Windows  
-bbert.bat --check
 
 # Cross-platform
 python bbert.py --check
@@ -212,7 +204,7 @@ python bbert.py --check
 
 **Single file:**
 ```bash
-./bbert example/sample.fasta --output_dir example
+./bbert example/example.fasta --output_dir example
 ```
 
 **Multiple files:**
@@ -263,7 +255,7 @@ It processes FASTA/FASTQ/GZIP input files, computes probabilities, loss values, 
 
 #### Single File
 ```bash
-python source/inference.py example/sample.fasta --output_dir example --batch_size 1024
+python source/inference.py example/example.fasta --output_dir example --batch_size 1024
 ```
 
 #### Using Wildcards
