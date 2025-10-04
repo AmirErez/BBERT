@@ -261,6 +261,7 @@ python bbert.py --check
 ```bash
 ./bbert example/Pseudo*.fasta.gz --output_dir example/ --batch_size 512
 ```
+> **Windows Note**: In Command Prompt, use: `python bbert.py example/Pseudo*.fasta.gz --output_dir example/ --batch_size 512`. In PowerShell, wildcards work directly.
 
 **With embeddings (warning: large files, therefore we invoke the max_reads switch to process only the first 1000 reads from each file):**
 ```bash
@@ -271,6 +272,7 @@ python bbert.py --check
     example/Saccharomyces_paradoxus_R2.fasta.gz \
     --output_dir example --emb_out --max_reads 1000
 ```
+> **Windows**: `python bbert.py example/Pseudomonas_aeruginosa_R1.fasta.gz example/Pseudomonas_aeruginosa_R2.fasta.gz example/Saccharomyces_paradoxus_R1.fasta.gz example/Saccharomyces_paradoxus_R2.fasta.gz --output_dir example --emb_out --max_reads 1000`
 
 #### What the Executables Check:
 - ✅ Python 3.10+ installation
@@ -323,6 +325,7 @@ python source/inference.py \
     --output_dir example \
     --emb_out
 ```
+> **Windows**: `python source/inference.py example/Pseudomonas_aeruginosa_R1.fasta.gz example/Pseudomonas_aeruginosa_R2.fasta.gz example/Saccharomyces_paradoxus_R1.fasta.gz example/Saccharomyces_paradoxus_R2.fasta.gz --output_dir example --emb_out`
 
 ### Arguments
 - `files`: List of input file paths to process (required, can be relative or absolute paths)
@@ -360,6 +363,7 @@ import numpy as np
 # Frame mapping: positions 0-5 correspond to frames [-1, -3, -2, +1, +3, +2]
 frame_mapping = [-1, -3, -2, +1, +3, +2]
 df['predicted_frame'] = df['frame_prob'].apply(lambda x: frame_mapping[np.argmax(x)])
+print(df.head())
 ```
 
 ## 4. Post-Processing BBERT Outputs
@@ -376,6 +380,7 @@ python source/convert_scores_to_tsv.py \
     --output_dir example \
     --output_prefix example
 ```
+> **Windows**: `python source/convert_scores_to_tsv.py --input example_scores_len.parquet --output_dir example --output_prefix example`
 
 **Output:**
 - `example_good_long_scores.tsv.gz` - Reads ≥100bp with scores
@@ -400,6 +405,12 @@ python source/merge_paired_scores.py \
     --output_dir example \
     --output_prefix Saccharomyces_paradoxus
 ```
+
+> **Windows**:
+> ```cmd
+> python source/merge_paired_scores.py --r1 example/Pseudomonas_aeruginosa_R1_scores_len_emb.parquet --r2 example/Pseudomonas_aeruginosa_R2_scores_len_emb.parquet --output_dir example --output_prefix Pseudomonas_aeruginosa
+> python source/merge_paired_scores.py --r1 example/Saccharomyces_paradoxus_R1_scores_len_emb.parquet --r2 example/Saccharomyces_paradoxus_R2_scores_len_emb.parquet --output_dir example --output_prefix Saccharomyces_paradoxus
+> ```
 
 **Output:**
 - `Pseudomonas_aeruginosa_good_long_scores.tsv.gz` - Combined scores for read pairs ≥100bp
@@ -449,6 +460,12 @@ python source/extract_coding_AA.py \
     --coding_threshold 0.7
 ```
 
+> **Windows**:
+> ```cmd
+> python source/extract_coding_AA.py --input example/example.fasta --parquet example/example_scores_len.parquet --out_bact bacterial_proteins.fasta --out_nonbact nonbacterial_proteins.fasta
+> python source/extract_coding_AA.py --input example/Pseudomonas_aeruginosa_R1.fasta.gz --parquet example/Pseudomonas_aeruginosa_R1_scores_len.parquet --out_bact pseudomonas_bacterial_proteins.fasta --out_nonbact pseudomonas_nonbacterial_proteins.fasta --bacterial_threshold 0.8 --coding_threshold 0.7
+> ```
+
 **What this script does:**
 - Reads BBERT classification results and original sequence files
 - Filters for sequences with high coding probability
@@ -491,6 +508,7 @@ The visualization requires embeddings to be generated during inference using the
     example/Saccharomyces_paradoxus_R2.fasta.gz \
     --output_dir example --emb_out --batch_size 512
 ```
+> **Windows**: `python bbert.py example/Pseudomonas_aeruginosa_R1.fasta.gz example/Pseudomonas_aeruginosa_R2.fasta.gz example/Saccharomyces_paradoxus_R1.fasta.gz example/Saccharomyces_paradoxus_R2.fasta.gz --output_dir example --emb_out --batch_size 512`
 
 **⚠️ Important**: Embedding files (`*_scores_len_emb.parquet`) are much larger than regular output files and processing is slower.
 
@@ -523,6 +541,13 @@ python source/visualize_embeddings.py \
   --method pca \
   --max_samples 500
 ```
+
+> **Windows**:
+> ```cmd
+> python source/visualize_embeddings.py --files "example/Pseudomonas_aeruginosa_R1_scores_len_emb.parquet,example/Saccharomyces_paradoxus_R1_scores_len_emb.parquet" --labels "P. aeruginosa,S. paradoxus" --output_dir example --output_name bacterial_vs_eukaryotic --max_samples 500
+> python source/visualize_embeddings.py --files "example/Pseudomonas_aeruginosa_R1_scores_len_emb.parquet,example/Saccharomyces_paradoxus_R1_scores_len_emb.parquet" --labels "P. aeruginosa,S. paradoxus" --output_dir example --output_name bacterial_vs_eukaryotic_pca --method pca --max_samples 500
+> ```
+
 The t-SNE output will be in example/bacterial_vs_eukaryotic.png and .pdf, and looks like this:
 ![Bacteria vs. Eukaryotic t-SNE](./example/bacterial_vs_eukaryotic.png)
 
@@ -616,6 +641,14 @@ python source/test_genomic_accuracy.py \
     --output_dir tests \
     --reads_per_cds 2
 ```
+
+> **Windows**:
+> ```cmd
+> mkdir tests
+> python source/test_genomic_accuracy.py --fasta example/GCF_000016525_P_aeruginosa.fasta --gtf example/GCF_000016525_P_aeruginosa.gtf --is_bact true --taxon "P.aeruginosa" --reads_per_cds 1 --output_dir tests --verbose
+> python source/test_genomic_accuracy.py --fasta example/GCF_000146045_S_cerevisiae.fasta --gff example/GCF_000146045S_cerevisiae.gff --is_bact false --taxon "S.cerevisiae" --output_dir tests --reads_per_cds 1
+> python source/test_genomic_accuracy.py --fasta example/GCF_000016525_M_smithii.fasta --gff example/GCF_000016525_M_smithii.gtf --is_bact true --taxon "M.smithii" --output_dir tests --reads_per_cds 2
+> ```
 
 ### What This Analysis Does
 

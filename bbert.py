@@ -38,19 +38,19 @@ Colors.init()
 
 def print_error(msg):
     """Print error message in red"""
-    print(f"{Colors.RED}❌ Error: {msg}{Colors.NC}", file=sys.stderr)
+    print(f"{Colors.RED}[ERROR] {msg}{Colors.NC}", file=sys.stderr)
 
 def print_success(msg):
     """Print success message in green"""
-    print(f"{Colors.GREEN}✅ {msg}{Colors.NC}")
+    print(f"{Colors.GREEN}[OK] {msg}{Colors.NC}")
 
 def print_warning(msg):
     """Print warning message in yellow"""
-    print(f"{Colors.YELLOW}⚠️  Warning: {msg}{Colors.NC}")
+    print(f"{Colors.YELLOW}[WARNING] {msg}{Colors.NC}")
 
 def print_info(msg):
     """Print info message in blue"""
-    print(f"{Colors.BLUE}ℹ️  {msg}{Colors.NC}")
+    print(f"{Colors.BLUE}[INFO] {msg}{Colors.NC}")
 
 def command_exists(command):
     """Check if command exists in PATH"""
