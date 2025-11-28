@@ -91,6 +91,9 @@ dependencies:
   - joblib=1.4.2
   - keyutils=1.6.1
   - krb5=1.21.3
+  - matplotlib
+  - scikit-learn
+  - seaborn
   - lame=3.100
   - lcms2=2.16
   - ld_impl_linux-64=2.43

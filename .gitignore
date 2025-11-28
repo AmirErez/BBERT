@@ -1,3 +1,5 @@
+Graveyard/
+temp/
 example/*.parquet
 
 # Byte-compiled / optimized / DLL files
