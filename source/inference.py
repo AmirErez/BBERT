@@ -21,6 +21,22 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from BERT_model.dataset import FastqIterableDataset
 from BERT_model.utils import clear_GPU, setup_logger, label_to_frame, get_resources_msg, get_slurm_cpus
 from BERT_model.collator import CollateFnWithTokenizer
+from BERT_model.config import (
+    SEQUENCE_LENGTH,
+    HIDDEN_SIZE_768,
+    HIDDEN_SIZE_384,
+    NUM_BACTERIAL_CLASSES,
+    NUM_READING_FRAMES,
+    NUM_CODING_CLASSES,
+    LOG_INTERVAL,
+    DEFAULT_BBERT_MODEL_PATH_768,
+    DEFAULT_BBERT_MODEL_PATH_384,
+    DEFAULT_BACTERIAL_CLASSIFIER_PATH,
+    DEFAULT_FRAME_CLASSIFIER_PATH,
+    DEFAULT_CODING_CLASSIFIER_PATH,
+    DEFAULT_PREFETCH_FACTOR,
+    DEFAULT_NUM_WORKERS
+)
 from emb_model.architecture import BertClassifier
 from inference_utils import get_device, get_output_filename, load_bbert_model, load_classifier
 
@@ -30,18 +46,18 @@ slurm_cpus = get_slurm_cpus()
 # Mac and Windows have multiprocessing issues with DataLoader, use single worker
 import platform
 if platform.system() in ["Darwin", "Windows"]:  # macOS and Windows
-    num_workers = 0
+    num_workers = DEFAULT_NUM_WORKERS
 else:
     num_workers = max(1, min(slurm_cpus, mp.cpu_count()) - 1)
-prefetch_factor = 2
+prefetch_factor = DEFAULT_PREFETCH_FACTOR
 
 data_len = None
-seq_len = 102
-hidden_size = 768
-bact_classes = 2
-frame_classes = 6
-coding_classes = 2
-log_interval = 100
+seq_len = SEQUENCE_LENGTH
+hidden_size = HIDDEN_SIZE_768
+bact_classes = NUM_BACTERIAL_CLASSES
+frame_classes = NUM_READING_FRAMES
+coding_classes = NUM_CODING_CLASSES
+log_interval = LOG_INTERVAL
 
 # Get the directory where the script is located
 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -49,13 +65,13 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 # Go one level up (..)
 bbert_dir = os.path.abspath(os.path.join(script_dir, ".."))
 
-if hidden_size == 384:
-    bbert_model_path = f'{bbert_dir}/models/diverse_bact_3_384_6_50000Ks/checkpoint-7000'
-elif hidden_size == 768:
-    bbert_model_path = f'{bbert_dir}/models/diverse_bact_12_768_6_20000/checkpoint-32500'
-    bact_class_model_path = f'{bbert_dir}/emb_class_bact/models/emb_class_model_768H_3906K_80e/epoch_80.pt'
-    frame_class_model_path = f'{bbert_dir}/emb_class_frame/models/classifier_model_2000K_37e.pth'
-    class_model_path = f'{bbert_dir}/emb_class_coding/models/emb_coding_model_768_3906K_50e/epoch_46.pt'
+if hidden_size == HIDDEN_SIZE_384:
+    bbert_model_path = f'{bbert_dir}/{DEFAULT_BBERT_MODEL_PATH_384}'
+elif hidden_size == HIDDEN_SIZE_768:
+    bbert_model_path = f'{bbert_dir}/{DEFAULT_BBERT_MODEL_PATH_768}'
+    bact_class_model_path = f'{bbert_dir}/{DEFAULT_BACTERIAL_CLASSIFIER_PATH}'
+    frame_class_model_path = f'{bbert_dir}/{DEFAULT_FRAME_CLASSIFIER_PATH}'
+    class_model_path = f'{bbert_dir}/{DEFAULT_CODING_CLASSIFIER_PATH}'
 
 
 if __name__ == "__main__":
@@ -144,10 +160,25 @@ For more information: https://github.com/AmirErez/BBERT
         parser.error("--emb_out requires --max_reads to be specified to prevent creating huge files.\n"
                      "Example: python source/inference.py file.fasta --output_dir results --emb_out --max_reads 1000")
 
-    os.makedirs(output_dir, exist_ok=True)
+    # Create output directory with error handling
+    try:
+        os.makedirs(output_dir, exist_ok=True)
+    except PermissionError:
+        print(f"Error: Permission denied when creating output directory: {output_dir}")
+        print("Please check that you have write permissions for this location.")
+        sys.exit(1)
+    except OSError as e:
+        print(f"Error: Failed to create output directory: {output_dir}")
+        print(f"Reason: {str(e)}")
+        sys.exit(1)
 
     verbose = True  # or use argparse to pass --verbose
-    logger = setup_logger(verbose, log_file=os.path.join(output_dir, "inference.log"))
+    try:
+        logger = setup_logger(verbose, log_file=os.path.join(output_dir, "inference.log"))
+    except (PermissionError, OSError) as e:
+        print(f"Warning: Failed to create log file in {output_dir}: {str(e)}")
+        print("Continuing without file logging...")
+        logger = setup_logger(verbose, log_file=None)
 
     logger.info(f'batch size = {batch_size//1024}K, chunk size = {chunk_size//1024}K')
     num_cpus = mp.cpu_count()
@@ -182,13 +213,27 @@ For more information: https://github.com/AmirErez/BBERT
         ## dataset loading
         dataset_path = file_path
 
+        # Validate input file exists
+        if not os.path.exists(dataset_path):
+            logger.error(f"Input file not found: {dataset_path}")
+            logger.error("Please check that the file path is correct.")
+            sys.exit(1)
+
         # Generate output filename
         output_path = get_output_filename(file_path, output_dir, emb_out)
-            
+
         logger.info(f"Processing file: {dataset_path}")
-        dataset = FastqIterableDataset(dataset_path, chunk_size=chunk_size, max_reads=max_reads)
-        
-        seq_lens, data_len = dataset.get_stats()
+        try:
+            dataset = FastqIterableDataset(dataset_path, chunk_size=chunk_size, max_reads=max_reads)
+            seq_lens, data_len = dataset.get_stats()
+        except PermissionError:
+            logger.error(f"Permission denied when reading file: {dataset_path}")
+            logger.error("Please check that you have read permissions for this file.")
+            sys.exit(1)
+        except Exception as e:
+            logger.error(f"Failed to load dataset from {dataset_path}: {str(e)}")
+            logger.error("Please check that the file is a valid FASTA/FASTQ file.")
+            sys.exit(1)
         logger.info(f"{len(seq_lens)} reads, {min(seq_lens)} <= len <= {max(seq_lens)}")
         if max_reads and data_len >= max_reads:
             logger.info(f"Limited to first {data_len} reads (--max_reads {max_reads})")
@@ -321,14 +366,25 @@ For more information: https://github.com/AmirErez/BBERT
         if emb_out:
             columns["embedding"] = emb_pa
         output_table = pa.table(columns)
-        
-        pq.write_table(output_table, output_path, compression="zstd")
-        logger.info(output_table.slice(0, 5).to_pandas())
-    
-        if os.path.exists(output_path):
+
+        # Write output with error handling
+        try:
+            pq.write_table(output_table, output_path, compression="zstd")
+            logger.info(output_table.slice(0, 5).to_pandas())
             logger.info(f"Results saved to {output_path}")
-        else:
-            logger.error(f"Failed to save results to {output_path}")
+        except PermissionError:
+            logger.error(f"Permission denied when writing to {output_path}")
+            logger.error("Please check that you have write permissions for this location.")
+            sys.exit(1)
+        except OSError as e:
+            logger.error(f"Failed to write results to {output_path}")
+            logger.error(f"Reason: {str(e)}")
+            if "No space left on device" in str(e):
+                logger.error("You may have run out of disk space.")
+            sys.exit(1)
+        except Exception as e:
+            logger.error(f"Unexpected error writing results to {output_path}: {str(e)}")
+            sys.exit(1)
                   
         # Explicit deletion
         del dataset, dataloader, input_ids, outputs, embeddings

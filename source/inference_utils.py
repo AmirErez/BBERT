@@ -82,22 +82,51 @@ def load_bbert_model(model_path, tokenizer_path, device, use_half_precision, log
 
     Returns:
         tuple: (model, tokenizer, collate_fn)
+
+    Raises:
+        FileNotFoundError: If model files don't exist
+        RuntimeError: If model loading fails
     """
     from BERT_model.collator import CollateFnWithTokenizer
 
-    tokenizer = AutoTokenizer.from_pretrained(tokenizer_path, use_fast=True)
-    collate_fn_instance = CollateFnWithTokenizer(tokenizer)
+    # Validate model directory exists
+    if not os.path.exists(model_path):
+        raise FileNotFoundError(
+            f"BBERT model not found at: {model_path}\n"
+            "Run 'python source/download_models.py' to download models from Hugging Face."
+        )
 
-    model = BertForMaskedLM.from_pretrained(model_path, local_files_only=True)
-    model.eval()
-    if use_half_precision:
-        model.half()
-    model.to(device)
+    # Check for required model files
+    required_files = ['pytorch_model.bin', 'config.json']
+    missing_files = [f for f in required_files if not os.path.exists(os.path.join(model_path, f))]
+    if missing_files:
+        raise FileNotFoundError(
+            f"Missing required BBERT model files: {missing_files}\n"
+            f"Model directory: {model_path}\n"
+            "Run 'python source/download_models.py' to download models from Hugging Face."
+        )
 
-    if logger:
-        logger.info(f"BBERT model loaded from {model_path}")
+    try:
+        tokenizer = AutoTokenizer.from_pretrained(tokenizer_path, use_fast=True)
+        collate_fn_instance = CollateFnWithTokenizer(tokenizer)
 
-    return model, tokenizer, collate_fn_instance
+        model = BertForMaskedLM.from_pretrained(model_path, local_files_only=True)
+        model.eval()
+        if use_half_precision:
+            model.half()
+        model.to(device)
+
+        if logger:
+            logger.info(f"BBERT model loaded from {model_path}")
+
+        return model, tokenizer, collate_fn_instance
+
+    except Exception as e:
+        raise RuntimeError(
+            f"Failed to load BBERT model from {model_path}: {str(e)}\n"
+            "This might be a corrupted model file. Try re-downloading with:\n"
+            "python source/download_models.py --force"
+        ) from e
 
 
 def load_classifier(model_path, hidden_size, num_classes, device, use_half_precision, logger=None, model_name="Classifier"):
@@ -115,18 +144,45 @@ def load_classifier(model_path, hidden_size, num_classes, device, use_half_preci
 
     Returns:
         BertClassifier model
+
+    Raises:
+        FileNotFoundError: If checkpoint file doesn't exist
+        RuntimeError: If model loading fails
     """
     from emb_model.architecture import BertClassifier
 
-    classifier = BertClassifier(hidden_size, num_classes)
-    checkpoint = torch.load(model_path, weights_only=True, map_location=device)
-    classifier.load_state_dict(checkpoint['model_state_dict'])
-    classifier.eval()
-    if use_half_precision:
-        classifier.half()
-    classifier.to(device)
+    # Validate checkpoint file exists
+    if not os.path.exists(model_path):
+        raise FileNotFoundError(
+            f"{model_name} checkpoint not found at: {model_path}\n"
+            "Run 'python source/download_models.py' to download models from Hugging Face."
+        )
 
-    if logger:
-        logger.info(f"{model_name} model loaded from {model_path}")
+    try:
+        classifier = BertClassifier(hidden_size, num_classes)
+        checkpoint = torch.load(model_path, weights_only=True, map_location=device)
 
-    return classifier
+        # Validate checkpoint structure
+        if 'model_state_dict' not in checkpoint:
+            raise KeyError(
+                f"Invalid checkpoint format: missing 'model_state_dict' key.\n"
+                f"Checkpoint file: {model_path}"
+            )
+
+        classifier.load_state_dict(checkpoint['model_state_dict'])
+        classifier.eval()
+        if use_half_precision:
+            classifier.half()
+        classifier.to(device)
+
+        if logger:
+            logger.info(f"{model_name} model loaded from {model_path}")
+
+        return classifier
+
+    except Exception as e:
+        raise RuntimeError(
+            f"Failed to load {model_name} from {model_path}: {str(e)}\n"
+            "This might be a corrupted checkpoint file. Try re-downloading with:\n"
+            "python source/download_models.py --force"
+        ) from e

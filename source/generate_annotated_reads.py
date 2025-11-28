@@ -82,140 +82,195 @@ def calculate_true_frame(pos, phase):
     frame_offset = (phase - pos) % 3
     return frame_offset + 1
 
+def load_genome_sequences(fasta_file, logger):
+    """
+    Load genome sequences from FASTA file.
+
+    Args:
+        fasta_file: Path to genome FASTA file
+        logger: Logger instance
+
+    Returns:
+        Dictionary mapping sequence IDs to sequences
+    """
+    logger.info(f"Loading genome from {fasta_file}")
+    genome = {}
+    with open(fasta_file, 'r') as f:
+        for record in SeqIO.parse(f, "fasta"):
+            genome[record.id] = str(record.seq).upper()
+    return genome
+
+
+def calculate_frame_distribution(reads_per_cds):
+    """
+    Calculate how many reads to generate for each reading frame.
+
+    Args:
+        reads_per_cds: Total number of reads to generate per CDS
+
+    Returns:
+        Dictionary mapping frame numbers to read counts
+    """
+    if reads_per_cds < 6:
+        # Randomly select which frames to use for this CDS
+        frames_to_use = random.sample([1, 2, 3, -1, -2, -3], reads_per_cds)
+        return {frame: 1 for frame in frames_to_use}
+    else:
+        # Distribute reads across all frames
+        per_frame = reads_per_cds // 6
+        remainder = reads_per_cds - per_frame * 6
+        frame_counts = {}
+        for i, frame in enumerate([1, 2, 3, -1, -2, -3]):
+            frame_counts[frame] = per_frame + (1 if remainder > 0 else 0)
+            if remainder > 0:
+                remainder -= 1
+        return frame_counts
+
+
+def generate_reads_from_cds(chrom, start, end, strand, phase, sense_seq,
+                             frame_counts, read_length, is_bacterial):
+    """
+    Generate reads from a single CDS region across all requested frames.
+
+    Args:
+        chrom: Chromosome/sequence ID
+        start: CDS start position (0-based)
+        end: CDS end position
+        strand: Strand ('+' or '-')
+        phase: Reading frame phase (0, 1, or 2)
+        sense_seq: Sense strand sequence
+        frame_counts: Dictionary of frame -> number of reads
+        read_length: Length of each read
+        is_bacterial: Whether this is a bacterial genome
+
+    Returns:
+        List of read data dictionaries
+    """
+    reads_data = []
+    read_idx = 0
+
+    for frame in [1, 2, 3, -1, -2, -3]:
+        nthis = frame_counts.get(frame, 0)
+        if nthis == 0:
+            continue
+
+        # Pick positions so (phase - pos) % 3 == |frame| - 1
+        f = abs(frame)
+        desired_offset = (phase - (f - 1)) % 3
+        max_pos = len(sense_seq) - read_length
+        if max_pos < 0:
+            continue
+
+        valid_positions = [pos for pos in range(0, max_pos + 1) if (pos % 3) == desired_offset]
+        if not valid_positions:
+            continue
+
+        for _ in range(nthis):
+            pos = random.choice(valid_positions)
+            frag = sense_seq[pos:pos + read_length]
+
+            # For negative frames, take reverse complement of fragment
+            if frame > 0:
+                read_seq = frag
+            else:
+                read_seq = str(Seq(frag).reverse_complement())
+
+            read_idx += 1
+
+            # Create read data
+            read_data = {
+                'read_id': f"coding_{chrom}_{start}_{end}_{strand}_{read_idx}_frame{frame:+d}",
+                'sequence': read_seq,
+                'is_coding': True,
+                'is_bacterial': is_bacterial,
+                'true_frame': frame,
+                'chromosome': chrom,
+                'cds_start': start,
+                'cds_end': end,
+                'strand': strand,
+                'phase': phase,
+                'read_start_in_cds': pos,
+                'read_length': len(read_seq)
+            }
+            reads_data.append(read_data)
+
+    return reads_data
+
+
 def generate_coding_reads_with_frames(fasta_file, gff_file, reads_per_cds=2, read_length=100, is_bacterial=True):
     """
     Generate coding reads with true frame annotations.
-    
+
     Args:
         fasta_file: Path to genome FASTA file
         gff_file: Path to GFF annotation file
         reads_per_cds: Number of reads to generate per CDS
         read_length: Length of each read
         is_bacterial: Whether this is a bacterial genome
-        
+
     Returns:
         List of dictionaries with read information
     """
     logger = logging.getLogger(__name__)
     logger.info(f"Generating coding reads from {gff_file}")
-    
+
     # Read genome sequence
-    genome = {}
-    logger.info(f"Loading genome from {fasta_file}")
-    with open(fasta_file, 'r') as f:
-        for record in SeqIO.parse(f, "fasta"):
-            genome[record.id] = str(record.seq).upper()
-    
+    genome = load_genome_sequences(fasta_file, logger)
+
     reads_data = []
     cds_count = 0
-    
+
     # Parse GFF and extract CDS
     logger.info(f"Parsing annotations from {gff_file}")
     with open(gff_file, 'r') as f:
         for line in f:
             if line.startswith('#') or not line.strip():
                 continue
-                
+
             fields = line.strip().split('\t')
             if len(fields) < 9:
                 continue
-                
+
             # Handle both GFF and GTF formats
             feature_type = fields[2]
             if feature_type not in ['CDS', 'exon']:
                 continue
-                
+
             chrom = fields[0]
             start = int(fields[3]) - 1  # GFF is 1-based, convert to 0-based
             end = int(fields[4])
             strand = fields[6]
             phase = int(fields[7]) if fields[7] != '.' else 0
-            
+
             if chrom not in genome:
                 continue
-                
+
             cds_seq = genome[chrom][start:end]
             if not cds_seq or len(cds_seq) < read_length:
                 continue
-                
+
             cds_count += 1
-            
+
             # Get sense sequence (forward or reverse complement based on strand)
             if strand == '+':
                 sense_seq = cds_seq
             else:
                 sense_seq = str(Seq(cds_seq).reverse_complement())
-            
+
             if len(sense_seq) < read_length:
                 continue
-            
-            # Generate reads from all 6 frames: +1, +2, +3, -1, -2, -3
-            # Note: reads_per_cds is the TOTAL number of reads from this CDS, not per frame
-            
-            # If reads_per_cds < 6, randomly select which frames to use for this CDS
-            # to ensure overall balance across all CDS regions
-            if reads_per_cds < 6:
-                frames_to_use = random.sample([1, 2, 3, -1, -2, -3], reads_per_cds)
-                frame_counts = {frame: 1 for frame in frames_to_use}
-            else:
-                # For larger numbers, distribute across all frames
-                per_frame = reads_per_cds // 6
-                remainder = reads_per_cds - per_frame * 6
-                frame_counts = {}
-                for i, frame in enumerate([1, 2, 3, -1, -2, -3]):
-                    frame_counts[frame] = per_frame + (1 if remainder > 0 else 0)
-                    if remainder > 0:
-                        remainder -= 1
-            
-            read_idx = 0
-            for frame in [1, 2, 3, -1, -2, -3]:
-                nthis = frame_counts.get(frame, 0)
-                if nthis == 0:
-                    continue
-                
-                # Pick positions so (phase - pos) % 3 == |frame| - 1
-                f = abs(frame)
-                desired_offset = (phase - (f - 1)) % 3
-                max_pos = len(sense_seq) - read_length
-                if max_pos < 0:
-                    continue
-                    
-                valid_positions = [pos for pos in range(0, max_pos + 1) if (pos % 3) == desired_offset]
-                if not valid_positions:
-                    continue
-                
-                for _ in range(nthis):
-                    pos = random.choice(valid_positions)
-                    frag = sense_seq[pos:pos + read_length]
-                    
-                    # For negative frames, take reverse complement of fragment
-                    if frame > 0:
-                        read_seq = frag
-                    else:
-                        read_seq = str(Seq(frag).reverse_complement())
-                    
-                    read_idx += 1
-                    
-                    # Create read data
-                    read_data = {
-                        'read_id': f"coding_{chrom}_{start}_{end}_{strand}_{read_idx}_frame{frame:+d}",
-                        'sequence': read_seq,
-                        'is_coding': True,
-                        'is_bacterial': is_bacterial,
-                        'true_frame': frame,
-                        'chromosome': chrom,
-                        'cds_start': start,
-                        'cds_end': end,
-                        'strand': strand,
-                        'phase': phase,
-                        'read_start_in_cds': pos,
-                        'read_length': len(read_seq)
-                    }
-                    reads_data.append(read_data)
-                
+
+            # Calculate frame distribution and generate reads
+            frame_counts = calculate_frame_distribution(reads_per_cds)
+            cds_reads = generate_reads_from_cds(
+                chrom, start, end, strand, phase, sense_seq,
+                frame_counts, read_length, is_bacterial
+            )
+            reads_data.extend(cds_reads)
+
             if cds_count % 1000 == 0:
                 logger.info(f"Processed {cds_count} CDS regions, generated {len(reads_data)} reads")
-    
+
     logger.info(f"Generated {len(reads_data)} coding reads from {cds_count} CDS regions")
     return reads_data
 
@@ -345,13 +400,15 @@ def save_reads_to_csv(reads_data, output_file):
     """Save reads metadata to CSV format."""
     logger = logging.getLogger(__name__)
     logger.info(f"Saving metadata for {len(reads_data)} reads to {output_file}")
-    
+
     df = pd.DataFrame(reads_data)
     df.to_csv(output_file, index=False)
-    
+
     logger.info(f"Successfully saved metadata")
 
-def main():
+
+def parse_arguments():
+    """Parse command-line arguments."""
     parser = argparse.ArgumentParser(
         description="Generate annotated reads with frame and coding/noncoding labels",
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -359,10 +416,10 @@ def main():
 EXAMPLES:
   # Generate reads from bacterial genome
   python source/generate_annotated_reads.py --fasta genome.fasta --gff annotations.gff --is_bact true --output_prefix bacterial_reads
-  
-  # Generate reads from eukaryotic genome  
+
+  # Generate reads from eukaryotic genome
   python source/generate_annotated_reads.py --fasta genome.fasta --gtf annotations.gtf --is_bact false --output_prefix eukaryotic_reads
-  
+
   # Custom read counts
   python source/generate_annotated_reads.py --fasta genome.fasta --gff annotations.gff --is_bact true --reads_per_cds 10 --noncoding_reads 5000 --output_prefix custom_reads
 
@@ -371,10 +428,10 @@ OUTPUT FILES:
   - {prefix}_metadata.csv: CSV file with detailed metadata
         """
     )
-    
+
     parser.add_argument("--fasta", required=True,
                        help="Path to genome FASTA file")
-    parser.add_argument("--gff", 
+    parser.add_argument("--gff",
                        help="Path to GFF annotation file")
     parser.add_argument("--gtf",
                        help="Path to GTF annotation file")
@@ -392,37 +449,81 @@ OUTPUT FILES:
                        help="Output directory (default: current directory)")
     parser.add_argument("--verbose", action="store_true",
                        help="Verbose logging")
-    
-    args = parser.parse_args()
-    
-    # Setup logging
-    logger = setup_logging()
-    if args.verbose:
-        logger.setLevel(logging.DEBUG)
-    
-    # Validate inputs
+
+    return parser.parse_args()
+
+
+def validate_inputs(args, logger):
+    """
+    Validate input files exist and return annotation file path.
+
+    Returns:
+        Tuple of (annotation_file, is_bacterial) or (None, None) on error
+    """
+    # Validate FASTA file
     if not os.path.exists(args.fasta):
         logger.error(f"FASTA file not found: {args.fasta}")
-        return 1
-    
+        return None, None
+
     # Check for annotation file
     annotation_file = None
     if args.gff:
         if not os.path.exists(args.gff):
             logger.error(f"GFF file not found: {args.gff}")
-            return 1
+            return None, None
         annotation_file = args.gff
     elif args.gtf:
         if not os.path.exists(args.gtf):
             logger.error(f"GTF file not found: {args.gtf}")
-            return 1
+            return None, None
         annotation_file = args.gtf
     else:
         logger.error("Either --gff or --gtf must be provided")
-        return 1
-    
+        return None, None
+
     # Parse bacterial flag
     is_bacterial = args.is_bact.lower() == 'true'
+
+    return annotation_file, is_bacterial
+
+
+def print_summary_statistics(all_reads, coding_reads, noncoding_reads, fasta_file, csv_file, logger):
+    """Print summary statistics about generated reads."""
+    logger.info("\nSUMMARY STATISTICS:")
+    logger.info(f"  Total reads: {len(all_reads)}")
+    logger.info(f"  Coding reads: {len(coding_reads)} ({len(coding_reads)/len(all_reads)*100:.1f}%)")
+    logger.info(f"  Noncoding reads: {len(noncoding_reads)} ({len(noncoding_reads)/len(all_reads)*100:.1f}%)")
+
+    if coding_reads:
+        # Frame distribution for coding reads
+        frame_counts = {}
+        for read in coding_reads:
+            frame = read['true_frame']
+            frame_counts[frame] = frame_counts.get(frame, 0) + 1
+
+        logger.info(f"  Frame distribution (coding reads):")
+        for frame in sorted(frame_counts.keys()):
+            count = frame_counts[frame]
+            logger.info(f"    Frame {frame:+d}: {count} reads ({count/len(coding_reads)*100:.1f}%)")
+
+    logger.info(f"\nOutput files:")
+    logger.info(f"  FASTA: {fasta_file}")
+    logger.info(f"  Metadata: {csv_file}")
+
+
+def main():
+    # Parse arguments
+    args = parse_arguments()
+
+    # Setup logging
+    logger = setup_logging()
+    if args.verbose:
+        logger.setLevel(logging.DEBUG)
+
+    # Validate inputs
+    annotation_file, is_bacterial = validate_inputs(args, logger)
+    if annotation_file is None:
+        return 1
     
     # Create output directory
     output_dir = Path(args.output_dir)
@@ -477,29 +578,10 @@ OUTPUT FILES:
     
     save_reads_to_fasta(all_reads, fasta_file)
     save_reads_to_csv(all_reads, csv_file)
-    
+
     # Print summary statistics
-    logger.info("\nSUMMARY STATISTICS:")
-    logger.info(f"  Total reads: {len(all_reads)}")
-    logger.info(f"  Coding reads: {len(coding_reads)} ({len(coding_reads)/len(all_reads)*100:.1f}%)")
-    logger.info(f"  Noncoding reads: {len(noncoding_reads)} ({len(noncoding_reads)/len(all_reads)*100:.1f}%)")
-    
-    if coding_reads:
-        # Frame distribution for coding reads
-        frame_counts = {}
-        for read in coding_reads:
-            frame = read['true_frame']
-            frame_counts[frame] = frame_counts.get(frame, 0) + 1
-        
-        logger.info(f"  Frame distribution (coding reads):")
-        for frame in sorted(frame_counts.keys()):
-            count = frame_counts[frame]
-            logger.info(f"    Frame {frame:+d}: {count} reads ({count/len(coding_reads)*100:.1f}%)")
-    
-    logger.info(f"\nOutput files:")
-    logger.info(f"  FASTA: {fasta_file}")
-    logger.info(f"  Metadata: {csv_file}")
-    
+    print_summary_statistics(all_reads, coding_reads, noncoding_reads, fasta_file, csv_file, logger)
+
     return 0
 
 if __name__ == "__main__":

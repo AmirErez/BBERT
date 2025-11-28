@@ -15,6 +15,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from BERT_model.dataset import FastqIterableDataset
 from BERT_model.utils import get_true_label, log_resources, clear_GPU, setup_logger, get_slurm_cpus
 from BERT_model.collator import CollateFnWithTokenizer
+from BERT_model.config import SEQUENCE_LENGTH, HIDDEN_SIZE_768, NUM_READING_FRAMES
 from emb_model.architecture import BertClassifier
 
 os.environ["WANDB_DISABLED"] = "true"
@@ -49,14 +50,14 @@ batch_size = args.batch_size
 epochs_num = args.epochs
 
 chunk_size = batch_size * 20
-max_length = 102
+max_length = SEQUENCE_LENGTH
 data_len = args.max_reads if args.max_reads else batch_size * 1000
 num_workers = 0
 prefetch_factor = None
 
-seq_length = 102
-hidden_size = 768
-num_classes = 6
+seq_length = SEQUENCE_LENGTH
+hidden_size = HIDDEN_SIZE_768
+num_classes = NUM_READING_FRAMES
 
 if __name__ == "__main__":
 
