@@ -103,6 +103,14 @@ def get_resources_msg() -> str:
         msg += f" | GPU: CUDA available but monitoring unavailable"
 
     return msg
+
+def log_resources(msg: str = None) -> None:
+    """Log resource usage information. Wrapper for backward compatibility."""
+    logger = setup_logger(verbose=True)
+    if msg:
+        logger.info(msg)
+    else:
+        logger.info(get_resources_msg())
     
 def tensor_memory_summary(scope_dict, min_MB=1.0):
 

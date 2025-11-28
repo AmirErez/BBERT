@@ -305,7 +305,6 @@ EXAMPLES:
     --output_dir example \\
     --output_name bacterial_vs_eukaryotic_pca \\
     --method pca
-      --output_name ecoli_paired_end
         """,
         formatter_class=argparse.RawDescriptionHelpFormatter
     )
