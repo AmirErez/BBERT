@@ -172,12 +172,6 @@ pip install datasets huggingface_hub safetensors tokenizers torchinfo pynvml
 #### Step 1: Run System Diagnostics (Required)
 Immediately after installation, verify that everything is set up correctly:
 
-**Unix/Linux/Mac:**
-```bash
-./bbert --check
-```
-
-**Cross-platform including Windows (Python):**
 ```bash
 python bbert.py --check
 ```
@@ -211,12 +205,6 @@ Perfect classification: All 10 sequences correctly classified
 #### Step 3: Test with Example Data
 Once tests pass, try processing example data:
 
-**Unix/Linux/Mac:**
-```bash
-./bbert example/example.fasta --output_dir example/ --batch_size 64
-```
-
-**Cross-platform including Windows (Python):**
 ```bash
 python bbert.py example/example.fasta --output_dir example/ --batch_size 64
 ```
@@ -231,22 +219,18 @@ print(df.head())
 
 ## 2. Running BBERT
 
-### 2.1. Using the Convenient Executables (Recommended)
+### 2.1. Using the Python Script (Recommended)
 
-BBERT provides user-friendly executables that automatically check your system and provide helpful error messages:
+BBERT provides a user-friendly Python script that automatically checks your system and provides helpful error messages:
 
-**Unix/Linux/Mac:** `./bbert`
-**Cross-platform (including Windows):** `python bbert.py`
+```bash
+python bbert.py
+```
 
 #### System Diagnostics
 Before running analysis, check that everything is set up correctly:
 
 ```bash
-# Unix/Linux/Mac
-./bbert --check
-
-
-# Cross-platform
 python bbert.py --check
 ```
 
@@ -254,29 +238,27 @@ python bbert.py --check
 
 **Single file:**
 ```bash
-./bbert example/example.fasta --output_dir example
+python bbert.py example/example.fasta --output_dir example
 ```
 
 **Multiple files:**
 ```bash
-./bbert example/Pseudo*.fasta.gz --output_dir example/ --batch_size 512
+python bbert.py example/Pseudo*.fasta.gz --output_dir example/ --batch_size 512
 ```
-> **Windows Note**: In Command Prompt, use: `python bbert.py example/Pseudo*.fasta.gz --output_dir example/ --batch_size 512`. In PowerShell, wildcards work directly.
 
 **With embeddings (warning: large files, therefore we invoke the max_reads switch to process only the first 1000 reads from each file):**
 ```bash
-./bbert \
+python bbert.py \
     example/Pseudomonas_aeruginosa_R1.fasta.gz \
     example/Pseudomonas_aeruginosa_R2.fasta.gz \
     example/Saccharomyces_paradoxus_R1.fasta.gz \
     example/Saccharomyces_paradoxus_R2.fasta.gz \
     --output_dir example --emb_out --max_reads 1000
 ```
-> **Windows**: `python bbert.py example/Pseudomonas_aeruginosa_R1.fasta.gz example/Pseudomonas_aeruginosa_R2.fasta.gz example/Saccharomyces_paradoxus_R1.fasta.gz example/Saccharomyces_paradoxus_R2.fasta.gz --output_dir example --emb_out --max_reads 1000`
 
-#### What the Executables Check:
+#### What the Script Checks:
 - ✅ Python 3.10+ installation
-- ✅ Required packages (PyTorch, Transformers, BioPython, etc.)  
+- ✅ Required packages (PyTorch, Transformers, BioPython, etc.)
 - ✅ Model files downloaded via Git LFS
 - ✅ GPU availability (CUDA/MPS)
 - ✅ Input files exist
@@ -501,14 +483,13 @@ The visualization requires embeddings to be generated during inference using the
 
 ```bash
 # Generate embeddings for visualization (if not done already)
-./bbert \
+python bbert.py \
     example/Pseudomonas_aeruginosa_R1.fasta.gz \
     example/Pseudomonas_aeruginosa_R2.fasta.gz \
     example/Saccharomyces_paradoxus_R1.fasta.gz \
     example/Saccharomyces_paradoxus_R2.fasta.gz \
     --output_dir example --emb_out --batch_size 512
 ```
-> **Windows**: `python bbert.py example/Pseudomonas_aeruginosa_R1.fasta.gz example/Pseudomonas_aeruginosa_R2.fasta.gz example/Saccharomyces_paradoxus_R1.fasta.gz example/Saccharomyces_paradoxus_R2.fasta.gz --output_dir example --emb_out --batch_size 512`
 
 **⚠️ Important**: Embedding files (`*_scores_len_emb.parquet`) are much larger than regular output files and processing is slower.
 
@@ -596,7 +577,7 @@ If embeddings are missing:
 ```bash
 # Error: No embedding parquet files found in example
 # Solution: Re-run BBERT with --emb_out flag
-./bbert example/*.fasta.gz --output_dir example --emb_out
+python bbert.py example/*.fasta.gz --output_dir example --emb_out
 ```
 
 If visualization fails:
