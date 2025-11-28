@@ -94,6 +94,7 @@ dependencies:
   - matplotlib
   - scikit-learn
   - seaborn
+  - huggingface_hub
   - lame=3.100
   - lcms2=2.16
   - ld_impl_linux-64=2.43

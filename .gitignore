@@ -1,6 +1,7 @@
 Graveyard/
 temp/
 example/*.parquet
+.hf_download_temp/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -176,3 +177,11 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+
+# Coverage reports
+.coverage
+coverage.json
+htmlcov/
+
+# Test backups
+*.bak

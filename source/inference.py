@@ -22,6 +22,7 @@ from BERT_model.dataset import FastqIterableDataset
 from BERT_model.utils import clear_GPU, setup_logger, label_to_frame, get_resources_msg, get_slurm_cpus
 from BERT_model.collator import CollateFnWithTokenizer
 from emb_model.architecture import BertClassifier
+from inference_utils import get_device, get_output_filename, load_bbert_model, load_classifier
 
 os.environ["WANDB_DISABLED"] = "true"
 
@@ -55,27 +56,29 @@ elif hidden_size == 768:
     bact_class_model_path = f'{bbert_dir}/emb_class_bact/models/emb_class_model_768H_3906K_80e/epoch_80.pt'
     frame_class_model_path = f'{bbert_dir}/emb_class_frame/models/classifier_model_2000K_37e.pth'
     class_model_path = f'{bbert_dir}/emb_class_coding/models/emb_coding_model_768_3906K_50e/epoch_46.pt'
-    
-# Argument parsing with detailed help
-description = """
+
+
+if __name__ == "__main__":
+    # Argument parsing with detailed help
+    description = """
 BBERT - BERT for Bacterial DNA Classification
 
 BBERT is a BERT-based transformer model for DNA sequence analysis that performs:
-- Bacterial vs. non-bacterial classification  
+- Bacterial vs. non-bacterial classification
 - Reading frame prediction (6 frames: +1,+2,+3,-1,-2,-3)
 - Coding vs. non-coding sequence classification
 
 Supports FASTA, FASTQ, and compressed (.gz) input files.
 """
 
-epilog = """
+    epilog = """
 EXAMPLES:
   # Single file
   python source/inference.py example/sample.fasta --output_dir results
-  
-  # Multiple files  
+
+  # Multiple files
   python source/inference.py file1.fasta file2.fastq.gz --output_dir results --batch_size 512
-  
+
   # Using wildcards
   python source/inference.py example/*.fasta.gz --output_dir results
 
@@ -94,11 +97,11 @@ OUTPUT FILES:
 
 OUTPUT COLUMNS:
   - id: Sequence identifier
-  - len: Sequence length  
+  - len: Sequence length
   - loss: Cross-entropy loss value
   - bact_prob: Bacterial classification probability (0-1)
   - frame_prob: Reading frame probabilities (array of 6 values)
-  - coding_prob: Coding sequence probability (0-1)  
+  - coding_prob: Coding sequence probability (0-1)
   - embedding: Sequence embeddings (only with --emb_out)
 
 SYSTEM REQUIREMENTS:
@@ -110,40 +113,38 @@ SYSTEM REQUIREMENTS:
 For more information: https://github.com/AmirErez/BBERT
 """
 
-parser = argparse.ArgumentParser(
-    description=description,
-    epilog=epilog,
-    formatter_class=argparse.RawDescriptionHelpFormatter
-)
+    parser = argparse.ArgumentParser(
+        description=description,
+        epilog=epilog,
+        formatter_class=argparse.RawDescriptionHelpFormatter
+    )
 
-parser.add_argument("files", nargs='+', type=str, 
-                   help="Input file paths (FASTA/FASTQ/GZ). Supports wildcards and multiple files.")
-parser.add_argument("--output_dir", type=str, required=True,
-                   help="Directory to save output Parquet files (required)")
-parser.add_argument("--batch_size", type=int, default=1024,
-                   help="Batch size for processing (default: 1024)")
-parser.add_argument("--emb_out", action='store_true',
-                   help="Include sequence embeddings in output (warning: slow and large files, requires --max_reads)")
-parser.add_argument("--max_reads", type=int,
-                   help="Maximum number of reads to process per file (default: process all reads)")
+    parser.add_argument("files", nargs='+', type=str,
+                       help="Input file paths (FASTA/FASTQ/GZ). Supports wildcards and multiple files.")
+    parser.add_argument("--output_dir", type=str, required=True,
+                       help="Directory to save output Parquet files (required)")
+    parser.add_argument("--batch_size", type=int, default=1024,
+                       help="Batch size for processing (default: 1024)")
+    parser.add_argument("--emb_out", action='store_true',
+                       help="Include sequence embeddings in output (warning: slow and large files, requires --max_reads)")
+    parser.add_argument("--max_reads", type=int,
+                       help="Maximum number of reads to process per file (default: process all reads)")
 
-args = parser.parse_args()
+    args = parser.parse_args()
 
-input_files = args.files
-output_dir = args.output_dir
-batch_size = args.batch_size
-emb_out = args.emb_out
-max_reads = args.max_reads
-chunk_size = batch_size * 2
+    input_files = args.files
+    output_dir = args.output_dir
+    batch_size = args.batch_size
+    emb_out = args.emb_out
+    max_reads = args.max_reads
+    chunk_size = batch_size * 2
 
-# Safety check: --emb_out requires --max_reads to prevent huge files
-if emb_out and max_reads is None:
-    parser.error("--emb_out requires --max_reads to be specified to prevent creating huge files.\n"
-                 "Example: python source/inference.py file.fasta --output_dir results --emb_out --max_reads 1000")
+    # Safety check: --emb_out requires --max_reads to prevent huge files
+    if emb_out and max_reads is None:
+        parser.error("--emb_out requires --max_reads to be specified to prevent creating huge files.\n"
+                     "Example: python source/inference.py file.fasta --output_dir results --emb_out --max_reads 1000")
 
-os.makedirs(output_dir, exist_ok=True)
-
-if __name__ == "__main__":
+    os.makedirs(output_dir, exist_ok=True)
 
     verbose = True  # or use argparse to pass --verbose
     logger = setup_logger(verbose, log_file=os.path.join(output_dir, "inference.log"))
@@ -153,60 +154,26 @@ if __name__ == "__main__":
     logger.info(f"CPUs allocated by SLURM: {slurm_cpus}, workers_num = {num_workers}")
 
     # Device selection with Mac MPS support
-    if torch.cuda.is_available():
-        device = torch.device('cuda')
-        gpu_name = torch.cuda.get_device_name(torch.cuda.current_device())
-        logger.info(f"Using CUDA GPU: {gpu_name}")
-        use_half_precision = True
-    elif hasattr(torch.backends, 'mps') and torch.backends.mps.is_available():
-        device = torch.device('mps')
-        logger.info("Using Apple MPS (Metal Performance Shaders)")
-        use_half_precision = False  # MPS doesn't support float16 well
-    else:
-        device = torch.device('cpu')
-        logger.info("Using CPU (no GPU acceleration available)")
-        use_half_precision = False  # CPU doesn't support float16 efficiently
+    device, use_half_precision = get_device(logger)
     
     ## BBERT tokenizer and model
     tokenizer_path = bbert_model_path
-    tokenizer = AutoTokenizer.from_pretrained(tokenizer_path, use_fast=True)
-    collate_fn_instance = CollateFnWithTokenizer(tokenizer)
-    
-    bbert_model = BertForMaskedLM.from_pretrained(bbert_model_path, local_files_only=True)
-    bbert_model.eval()
-    if use_half_precision:
-        bbert_model.half()
-    bbert_model.to(device)
-    logger.info(f"BBERT model loaded from {bbert_model_path}")
+    bbert_model, tokenizer, collate_fn_instance = load_bbert_model(
+        bbert_model_path, tokenizer_path, device, use_half_precision, logger
+    )
 
-    bact_classifier = BertClassifier(hidden_size, bact_classes)
-    bact_checkpoint = torch.load(bact_class_model_path, weights_only=True, map_location=device)
-    bact_classifier.load_state_dict(bact_checkpoint['model_state_dict'])
-    bact_classifier.eval()
-    if use_half_precision:
-        bact_classifier.half()
-    bact_classifier.to(device)
-    logger.info(f"Bacterial classifier model loaded from {bact_class_model_path}")
-    
-    ## frame classifier model
-    frame_classifier = BertClassifier(hidden_size, frame_classes)
-    frame_checkpoint = torch.load(frame_class_model_path, weights_only=True, map_location=device)
-    frame_classifier.load_state_dict(frame_checkpoint['model_state_dict'])
-    frame_classifier.eval()
-    if use_half_precision:
-        frame_classifier.half()
-    frame_classifier.to(device)
-    logger.info(f"Frame classifier model loaded from {frame_class_model_path}")
-    
-    ## coding classifier model
-    coding_classifier = BertClassifier(hidden_size, coding_classes)
-    coding_checkpoint = torch.load(class_model_path, weights_only=True, map_location=device)
-    coding_classifier.load_state_dict(coding_checkpoint['model_state_dict'])
-    coding_classifier.eval()
-    if use_half_precision:
-        coding_classifier.half()
-    coding_classifier.to(device)
-    logger.info(f"Coding classifier model loaded from {class_model_path}")
+    ## Load classifier models
+    bact_classifier = load_classifier(
+        bact_class_model_path, hidden_size, bact_classes, device, use_half_precision, logger, "Bacterial classifier"
+    )
+
+    frame_classifier = load_classifier(
+        frame_class_model_path, hidden_size, frame_classes, device, use_half_precision, logger, "Frame classifier"
+    )
+
+    coding_classifier = load_classifier(
+        class_model_path, hidden_size, coding_classes, device, use_half_precision, logger, "Coding classifier"
+    )
     
     loss_fn = torch.nn.CrossEntropyLoss(reduction='none').to(device)
     
@@ -214,17 +181,9 @@ if __name__ == "__main__":
     for file_path in input_files:
         ## dataset loading
         dataset_path = file_path
-        
-        # Extract base filename for output (without directory and extensions)
-        base_name = os.path.splitext(os.path.basename(file_path))[0]
-        # Handle .gz files (remove .gz and then the next extension)
-        if base_name.endswith('.fasta') or base_name.endswith('.fastq'):
-            base_name = os.path.splitext(base_name)[0]
-        
-        if emb_out:
-            output_path = os.path.join(output_dir, f"{base_name}_scores_len_emb.parquet")
-        else:
-            output_path = os.path.join(output_dir, f"{base_name}_scores_len.parquet")
+
+        # Generate output filename
+        output_path = get_output_filename(file_path, output_dir, emb_out)
             
         logger.info(f"Processing file: {dataset_path}")
         dataset = FastqIterableDataset(dataset_path, chunk_size=chunk_size, max_reads=max_reads)

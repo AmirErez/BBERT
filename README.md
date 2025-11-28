@@ -72,49 +72,51 @@ doi: https://doi.org/10.1101/2025.09.07.674730](https://www.biorxiv.org/content/
   - Apple Silicon Macs: MPS acceleration supported
   - CPU-only: Supported but slower
 - **Memory**: Minimum 8GB RAM, 4GB+ GPU memory recommended  
-- **Storage**: ~2GB for model files (requires Git LFS)
-- **Dependencies**: PyTorch, Transformers, PyArrow, pandas, scikit-learn, seaborn
+- **Storage**: ~2GB for model files (automatically downloaded from Hugging Face Hub)
+- **Dependencies**: PyTorch, Transformers, PyArrow, pandas, scikit-learn, seaborn, huggingface_hub
 
-## 1. Installation.  
+## 1. Installation
 ### 1.1. Download
-#### Option 1: From github
-First, download this repository,
+
+**Clone the repository:**
 ```bash
 git clone https://github.com/AmirErez/BBERT.git
 cd BBERT
 ```
 
-#### Installing Git Large File Storage
-You will need GitHub's large file storage feature to download the model files.
+**Note about model files:**
+- Models are automatically downloaded from [Hugging Face Hub](https://huggingface.co/AmirErez/BBERT-models) on first run
+- No Git LFS setup required!
+- To manually download models: `python source/download_models.py`
+
+<details>
+<summary><b>Optional: Using Git LFS (legacy method)</b></summary>
+
+If you prefer to use Git LFS instead of Hugging Face downloads:
 
 **On Unix/Linux:**
 ```bash
 sudo apt-get install git-lfs  # Ubuntu/Debian
 # OR
 sudo yum install git-lfs      # CentOS/RHEL/Fedora
-# OR use your distribution's package manager
 ```
 
 **On Mac:**
-Download and install Git LFS from https://git-lfs.com or use a package manager:
 ```bash
 # Using Homebrew
 brew install git-lfs
-
-
-# OR
-
-# Using MacPorts
+# OR MacPorts
 sudo port install git-lfs
 ```
 
-**Initialize Git LFS (all platforms):**
+**Initialize Git LFS:**
 ```bash
 git lfs install
-git lfs pull 
+git lfs pull
 ```
-#### Option 2: From Zenodo
-TBA
+
+**Note:** Git LFS has bandwidth limits on GitHub. Hugging Face provides unlimited bandwidth.
+</details>
 
 ### 1.2. Install using Conda
 
@@ -179,7 +181,7 @@ python bbert.py --check
 This will verify:
 - ✅ Python 3.10+ installation
 - ✅ Required packages (PyTorch, Transformers, BioPython, etc.)  
-- ✅ Model files downloaded via Git LFS
+- ✅ Model files automatically downloaded from Hugging Face
 - ✅ GPU availability (CUDA/MPS)
 - ✅ Conda environment status
 
@@ -259,7 +261,7 @@ python bbert.py \
 #### What the Script Checks:
 - ✅ Python 3.10+ installation
 - ✅ Required packages (PyTorch, Transformers, BioPython, etc.)
-- ✅ Model files downloaded via Git LFS
+- ✅ Model files automatically downloaded from Hugging Face
 - ✅ GPU availability (CUDA/MPS)
 - ✅ Input files exist
 - ✅ Conda environment status
@@ -690,7 +692,7 @@ PROBABILITY DISTRIBUTIONS:
 
 ### Installing Git
 
-If you don't have Git installed on your system, you'll need it to clone the repository and access Git LFS files.
+If you don't have Git installed on your system, you'll need it to clone the repository. Model files are automatically downloaded from Hugging Face Hub.
 
 **On Unix/Linux:**
 ```bash
@@ -741,7 +743,7 @@ If you cannot install Git, here are alternative approaches:
      - `emb_class_coding/models/`
 
 #### Option 2: Use Git GUI Clients
-Some GUI clients handle Git LFS automatically:
+Some GUI clients for Git (note: model files download automatically from Hugging Face, no Git LFS needed):
 - **GitHub Desktop:** https://desktop.github.com/
 - **Sourcetree:** https://www.sourcetreeapp.com/
 - **GitKraken:** https://www.gitkraken.com/
@@ -751,8 +753,8 @@ Some GUI clients handle Git LFS automatically:
 #### Issue: "git: command not found"
 **Solution:** Install Git using the instructions above.
 
-#### Issue: "git-lfs: command not found" 
-**Solution:** Install Git LFS using the platform-specific instructions in Section 1.1.
+#### Issue: "git-lfs: command not found"
+**Solution:** Git LFS is optional. Models are automatically downloaded from Hugging Face Hub. If you still want to use Git LFS, see the legacy instructions in Section 1.1.
 
 #### Issue: "tokenizers version conflict" (transformers ImportError)
 **Solution:** Install the correct tokenizers version:
@@ -782,8 +784,20 @@ conda activate BBERT_windows
 - For CPU-only systems, use smaller batch sizes (8-16)
 
 #### Issue: Repository download as ZIP doesn't include model files
-**Explanation:** GitHub's ZIP download doesn't include Git LFS files by default.
-**Solution:** Use `git clone` with Git LFS as described in Section 1.1, or try the alternative methods above.
+**Explanation:** Model files are downloaded separately from Hugging Face Hub.
+**Solution:** Models will be automatically downloaded on first run. No manual action needed!
+
+#### Issue: Model download fails
+**Possible causes:**
+- No internet connection
+- Firewall blocking Hugging Face Hub
+- Missing `huggingface_hub` package
+
+**Solutions:**
+1. Check internet connection
+2. Install huggingface_hub: `pip install huggingface_hub`
+3. Manually download: `python source/download_models.py`
+4. Alternative: Use Git LFS method (see Section 1.1)
 
 ### Getting Help
 
@@ -800,5 +814,5 @@ If you encounter issues not covered here:
    python --version
    conda --version  # or mamba --version
    git --version
-   git lfs version
+   python bbert.py --check
    ```

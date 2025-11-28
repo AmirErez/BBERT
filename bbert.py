@@ -92,7 +92,8 @@ def check_python_packages():
         ('sklearn', 'scikit-learn'),
         ('Bio', 'biopython'),
         ('tqdm', 'tqdm'),
-        ('yaml', 'pyyaml')
+        ('yaml', 'pyyaml'),
+        ('huggingface_hub', 'huggingface_hub')
     ]
     
     missing_packages = []
@@ -123,31 +124,56 @@ def check_python_packages():
     return True
 
 def check_model_files():
-    """Check if BBERT model files exist"""
+    """Check if BBERT model files exist, download from HF if missing"""
     print_info("Checking BBERT model files...")
-    
-    model_dirs = [
-        "models/diverse_bact_12_768_6_20000",
-        "emb_class_bact/models/emb_class_model_768H_3906K_80e",
-        "emb_class_frame/models",
-        "emb_class_coding/models/emb_coding_model_768_3906K_50e"
+
+    # Check for key model files
+    model_files = [
+        "models/diverse_bact_12_768_6_20000/checkpoint-32500/pytorch_model.bin",
+        "emb_class_bact/models/emb_class_model_768H_3906K_80e/epoch_80.pt",
+        "emb_class_frame/models/classifier_model_2000K_37e.pth",
+        "emb_class_coding/models/emb_coding_model_768_3906K_50e/epoch_46.pt"
     ]
-    
+
     missing_models = []
-    
-    for model_dir in model_dirs:
-        if not Path(model_dir).exists():
-            missing_models.append(model_dir)
-    
+
+    for model_file in model_files:
+        if not Path(model_file).exists():
+            missing_models.append(model_file)
+
     if missing_models:
-        print_error("Missing model directories:")
-        for model_dir in missing_models:
-            print(f"  - {model_dir}")
-        print_info("Please ensure you've downloaded the models using Git LFS:")
-        print_info("  git lfs install")
-        print_info("  git lfs pull")
-        return False
-    
+        print_warning("Some model files are missing")
+        print_info("Attempting to download models from Hugging Face Hub...")
+        print()
+
+        try:
+            # Import here to avoid dependency at module level
+            sys.path.insert(0, str(Path(__file__).parent / "source"))
+            from download_models import download_all_models
+
+            success = download_all_models(force=False)
+            if not success:
+                print_error("Failed to download models from Hugging Face")
+                print_info("Alternative: Download models using Git LFS:")
+                print_info("  git lfs install")
+                print_info("  git lfs pull")
+                return False
+
+            print()
+            print_success("Models downloaded successfully from Hugging Face")
+            return True
+
+        except ImportError as e:
+            print_error(f"Cannot import model downloader: {e}")
+            print_info("Please install: pip install huggingface_hub")
+            return False
+        except Exception as e:
+            print_error(f"Failed to download models: {e}")
+            print_info("Alternative: Download models using Git LFS:")
+            print_info("  git lfs install")
+            print_info("  git lfs pull")
+            return False
+
     print_success("Model files found")
     return True
 

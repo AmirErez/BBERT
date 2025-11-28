@@ -20,8 +20,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-        with:
-          lfs: true   # model files are ~2GB and require Git LFS :contentReference[oaicite:5]{index=5}
+        # Note: LFS disabled - models are now downloaded from Hugging Face Hub
 
       - uses: mamba-org/setup-micromamba@v2
         with:
@@ -33,9 +32,28 @@ jobs:
         shell: bash -l {0}
         run: python bbert.py --check
 
-      - name: Accuracy smoke test
+      - name: Install coverage tools
         shell: bash -l {0}
-        run: python source/test_inference_accuracy.py
+        run: pip install coverage
+
+      - name: Run tests with coverage
+        shell: bash -l {0}
+        run: |
+          coverage run --source=source -m unittest discover -s source -p "test_*.py"
+          coverage report
+          coverage html
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-report-${{ matrix.os }}
+          path: htmlcov/
+
+      - name: Check coverage threshold
+        shell: bash -l {0}
+        run: |
+          coverage report --fail-under=5 || echo "::warning::Coverage is below 5%"
 
       - name: End-to-end example (small)
         shell: bash -l {0}
