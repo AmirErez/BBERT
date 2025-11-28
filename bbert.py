@@ -123,6 +123,25 @@ def check_python_packages():
     print_success("All required packages found")
     return True
 
+def is_lfs_pointer(file_path: Path) -> bool:
+    """Check if a file is a Git LFS pointer file instead of actual content."""
+    try:
+        # LFS pointer files are small text files (< 200 bytes)
+        if file_path.stat().st_size > 200:
+            return False
+
+        # Check if it starts with "version https://git-lfs"
+        with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+            first_line = f.readline().strip()
+            if first_line.startswith('version https://git-lfs'):
+                return True
+    except Exception:
+        # If we can't read it, assume it's a real binary file
+        pass
+
+    return False
+
+
 def check_model_files():
     """Check if BBERT model files exist, download from HF if missing"""
     print_info("Checking BBERT model files...")
@@ -138,7 +157,9 @@ def check_model_files():
     missing_models = []
 
     for model_file in model_files:
-        if not Path(model_file).exists():
+        file_path = Path(model_file)
+        # Check if file doesn't exist OR is a Git LFS pointer
+        if not file_path.exists() or is_lfs_pointer(file_path):
             missing_models.append(model_file)
 
     if missing_models:

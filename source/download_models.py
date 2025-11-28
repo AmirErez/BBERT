@@ -49,13 +49,36 @@ MODELS = {
 
 
 def check_model_exists(local_path: Path) -> bool:
-    """Check if model file or directory exists locally."""
+    """Check if model file or directory exists locally and is not a Git LFS pointer."""
     if local_path.is_file():
+        # Check if it's a real file, not a Git LFS pointer
+        if is_lfs_pointer(local_path):
+            return False
         return True
     elif local_path.is_dir():
-        # For directories, check if key files exist
-        if (local_path / "pytorch_model.bin").exists():
+        # For directories, check if key files exist and are real
+        model_file = local_path / "pytorch_model.bin"
+        if model_file.exists() and not is_lfs_pointer(model_file):
             return True
+    return False
+
+
+def is_lfs_pointer(file_path: Path) -> bool:
+    """Check if a file is a Git LFS pointer file instead of actual content."""
+    try:
+        # LFS pointer files are small text files (< 200 bytes)
+        if file_path.stat().st_size > 200:
+            return False
+
+        # Check if it starts with "version https://git-lfs"
+        with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+            first_line = f.readline().strip()
+            if first_line.startswith('version https://git-lfs'):
+                return True
+    except Exception:
+        # If we can't read it, assume it's a real binary file
+        pass
+
     return False
 
 
