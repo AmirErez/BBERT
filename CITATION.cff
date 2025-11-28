@@ -1,0 +1,32 @@
+cff-version: 1.2.0
+message: "If you use BBERT, please cite the software and the associated preprint."
+title: "BBERT"
+type: software
+version: "0.1.0"
+repository-code: "https://github.com/AmirErez/BBERT"
+license: "MIT"
+authors:
+  - family-names: "Erez"
+    given-names: "Amir"
+
+preferred-citation:
+  type: article
+  title: "Fast and accurate taxonomic domain assignment of short metagenomic reads using BBERT"
+  authors:
+    - family-names: "Alekhin"
+      given-names: "Dmitry"
+    - family-names: "Alon"
+      given-names: "Moshe"
+    - family-names: "Sidi"
+      given-names: "Tomer"
+    - family-names: "Perez"
+      given-names: "Stav"
+    - family-names: "Carmi"
+      given-names: "Gon"
+    - family-names: "Finkel"
+      given-names: "Omri M."
+    - family-names: "Erez"
+      given-names: "Amir"
+  doi: "10.1101/2025.09.07.674730"
+  journal: "bioRxiv"
+  year: 2025
