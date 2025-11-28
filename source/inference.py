@@ -78,13 +78,13 @@ EXAMPLES:
   
   # Using wildcards
   python source/inference.py example/*.fasta.gz --output_dir results
-  
-  # With embeddings (warning: large files)
-  python source/inference.py example/Pseudomonas_*.fasta.gz --output_dir results --emb_out
-  
+
   # Process limited reads for testing
   python source/inference.py large_file.fasta.gz --output_dir test --max_reads 1000
-  
+
+  # With embeddings (warning: large files, requires --max_reads)
+  python source/inference.py example/Pseudomonas_*.fasta.gz --output_dir results --emb_out --max_reads 1000
+
   # All example files with embeddings and read limit
   python source/inference.py example/Pseudomonas_*.fasta.gz example/Saccharomyces_*.fasta.gz --output_dir results --emb_out --max_reads 5000
 
@@ -123,7 +123,7 @@ parser.add_argument("--output_dir", type=str, required=True,
 parser.add_argument("--batch_size", type=int, default=1024,
                    help="Batch size for processing (default: 1024)")
 parser.add_argument("--emb_out", action='store_true',
-                   help="Include sequence embeddings in output (warning: slow and large files)")
+                   help="Include sequence embeddings in output (warning: slow and large files, requires --max_reads)")
 parser.add_argument("--max_reads", type=int,
                    help="Maximum number of reads to process per file (default: process all reads)")
 
@@ -135,6 +135,11 @@ batch_size = args.batch_size
 emb_out = args.emb_out
 max_reads = args.max_reads
 chunk_size = batch_size * 2
+
+# Safety check: --emb_out requires --max_reads to prevent huge files
+if emb_out and max_reads is None:
+    parser.error("--emb_out requires --max_reads to be specified to prevent creating huge files.\n"
+                 "Example: python source/inference.py file.fasta --output_dir results --emb_out --max_reads 1000")
 
 os.makedirs(output_dir, exist_ok=True)
 

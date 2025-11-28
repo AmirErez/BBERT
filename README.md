@@ -305,16 +305,18 @@ python source/inference.py \
     example/Saccharomyces_paradoxus_R1.fasta.gz \
     example/Saccharomyces_paradoxus_R2.fasta.gz \
     --output_dir example \
-    --emb_out
+    --emb_out --max_reads 1000
 ```
-> **Windows**: `python source/inference.py example/Pseudomonas_aeruginosa_R1.fasta.gz example/Pseudomonas_aeruginosa_R2.fasta.gz example/Saccharomyces_paradoxus_R1.fasta.gz example/Saccharomyces_paradoxus_R2.fasta.gz --output_dir example --emb_out`
+> **Windows**: `python source/inference.py example/Pseudomonas_aeruginosa_R1.fasta.gz example/Pseudomonas_aeruginosa_R2.fasta.gz example/Saccharomyces_paradoxus_R1.fasta.gz example/Saccharomyces_paradoxus_R2.fasta.gz --output_dir example --emb_out --max_reads 1000`
+>
+> **Note**: `--emb_out` requires `--max_reads` to prevent accidentally creating huge files.
 
 ### Arguments
 - `files`: List of input file paths to process (required, can be relative or absolute paths)
 - `--output_dir`: Directory to save output Parquet files (required)
 - `--batch_size`: Batch size for processing (default: 1024)
-- `--emb_out`: Include sequence embeddings in output (optional, warning: slow and large files)
-- `--max_reads`: Maximum number of reads to process (optional, default: process all reads)
+- `--emb_out`: Include sequence embeddings in output (optional, warning: slow and large files, **requires --max_reads**)
+- `--max_reads`: Maximum number of reads to process (optional, default: process all reads, **required when using --emb_out**)
 
 ## 3. Output Format
 
@@ -488,10 +490,12 @@ python bbert.py \
     example/Pseudomonas_aeruginosa_R2.fasta.gz \
     example/Saccharomyces_paradoxus_R1.fasta.gz \
     example/Saccharomyces_paradoxus_R2.fasta.gz \
-    --output_dir example --emb_out --batch_size 512
+    --output_dir example --emb_out --max_reads 1000 --batch_size 512
 ```
 
-**⚠️ Important**: Embedding files (`*_scores_len_emb.parquet`) are much larger than regular output files and processing is slower.
+**⚠️ Important**:
+- Embedding files (`*_scores_len_emb.parquet`) are much larger than regular output files and processing is slower
+- `--emb_out` requires `--max_reads` to prevent accidentally creating huge files
 
 ### Creating t-SNE Visualizations
 
@@ -576,8 +580,8 @@ The script creates 4-panel plots saved in both PNG and PDF formats that reveal:
 If embeddings are missing:
 ```bash
 # Error: No embedding parquet files found in example
-# Solution: Re-run BBERT with --emb_out flag
-python bbert.py example/*.fasta.gz --output_dir example --emb_out
+# Solution: Re-run BBERT with --emb_out and --max_reads flags
+python bbert.py example/*.fasta.gz --output_dir example --emb_out --max_reads 1000
 ```
 
 If visualization fails:

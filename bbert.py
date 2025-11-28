@@ -222,18 +222,18 @@ EXAMPLES:
     
     # Multiple files
     python bbert.py file1.fasta file2.fastq.gz --output_dir results --batch_size 512
-    
-    # With embeddings (large output files)
-    python bbert.py example/*.fasta.gz --output_dir results --emb_out
-    
+
+    # With embeddings (large output files, requires --max_reads)
+    python bbert.py example/*.fasta.gz --output_dir results --emb_out --max_reads 1000
+
     # All example files
     python bbert.py example/Pseudomonas_*.fasta.gz example/Saccharomyces_*.fasta.gz --output_dir results
 
 OPTIONS:
     --output_dir DIR    Directory to save output files (required)
     --batch_size N      Batch size for processing (default: 1024)
-    --emb_out          Include sequence embeddings in output (warning: large files)
-    --max_reads N      Maximum number of reads to process (default: all reads)
+    --emb_out          Include sequence embeddings in output (warning: large files, requires --max_reads)
+    --max_reads N      Maximum number of reads to process (default: all reads, required with --emb_out)
     --help             Show this help message
     --check            Run system checks only (don't process files)
 
