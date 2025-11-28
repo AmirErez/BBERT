@@ -69,7 +69,7 @@ def load_embeddings_flexible(files_list, labels_list):
     
     return combined_df
 
-def prepare_data(df, max_samples_per_group=1000):
+def prepare_data(df, max_reads_per_group=1000):
     """Prepare data for t-SNE analysis"""
     # Extract coding and frame information from BBERT predictions
     def get_coding_from_predictions(coding_prob):
@@ -115,16 +115,16 @@ def prepare_data(df, max_samples_per_group=1000):
     # Dynamically determine number of categories
     num_samples = df['organism'].nunique()
     num_categories = df['category'].nunique()
-    max_total_size = max_samples_per_group * num_categories
-    
-    if len(df) > max_total_size:  
-        print(f"Sampling data to max {max_samples_per_group} per category...")
+    max_total_size = max_reads_per_group * num_categories
+
+    if len(df) > max_total_size:
+        print(f"Sampling data to max {max_reads_per_group} per category...")
         print(f"Found {num_categories} categories across {num_samples} samples")
         sampled_dfs = []
         for category in df['category'].unique():
             category_df = df[df['category'] == category]
-            if len(category_df) > max_samples_per_group:
-                category_df = category_df.sample(n=max_samples_per_group, random_state=42)
+            if len(category_df) > max_reads_per_group:
+                category_df = category_df.sample(n=max_reads_per_group, random_state=42)
             sampled_dfs.append(category_df)
         df = pd.concat(sampled_dfs, ignore_index=True)
         print(f"Final dataset size: {len(df)}")
@@ -320,8 +320,8 @@ EXAMPLES:
                        help='Output filename (without extension).')
     parser.add_argument('--method', choices=['tsne', 'pca'], default='tsne',
                        help='Dimensionality reduction method: tsne or pca (default: tsne)')
-    parser.add_argument('--max_samples', type=int, default=1000,
-                       help='Maximum samples per category for dimensionality reduction (default: 1000)')
+    parser.add_argument('--max_reads', type=int, default=1000,
+                       help='Maximum reads per category for dimensionality reduction (default: 1000)')
     parser.add_argument('--perplexity', type=int, default=30,
                        help='t-SNE perplexity parameter (default: 30)')
     parser.add_argument('--n_iter', type=int, default=1000,
@@ -343,7 +343,7 @@ EXAMPLES:
     )
     
     # Prepare data
-    df = prepare_data(df, max_samples_per_group=args.max_samples)
+    df = prepare_data(df, max_reads_per_group=args.max_reads)
     
     # Extract embeddings (assuming they're stored in 'embedding' column)
     if 'embedding' not in df.columns:

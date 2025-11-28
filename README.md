@@ -515,7 +515,7 @@ python source/visualize_embeddings.py \
   --labels "P. aeruginosa,S. paradoxus" \
   --output_dir example \
   --output_name bacterial_vs_eukaryotic \
-  --max_samples 500
+  --max_reads 500
 
 # Use PCA (faster alternative to t-SNE)
 python source/visualize_embeddings.py \
@@ -524,13 +524,13 @@ python source/visualize_embeddings.py \
   --output_dir example \
   --output_name bacterial_vs_eukaryotic_pca \
   --method pca \
-  --max_samples 500
+  --max_reads 500
 ```
 
 > **Windows**:
 > ```cmd
-> python source/visualize_embeddings.py --files "example/Pseudomonas_aeruginosa_R1_scores_len_emb.parquet,example/Saccharomyces_paradoxus_R1_scores_len_emb.parquet" --labels "P. aeruginosa,S. paradoxus" --output_dir example --output_name bacterial_vs_eukaryotic --max_samples 500
-> python source/visualize_embeddings.py --files "example/Pseudomonas_aeruginosa_R1_scores_len_emb.parquet,example/Saccharomyces_paradoxus_R1_scores_len_emb.parquet" --labels "P. aeruginosa,S. paradoxus" --output_dir example --output_name bacterial_vs_eukaryotic_pca --method pca --max_samples 500
+> python source/visualize_embeddings.py --files "example/Pseudomonas_aeruginosa_R1_scores_len_emb.parquet,example/Saccharomyces_paradoxus_R1_scores_len_emb.parquet" --labels "P. aeruginosa,S. paradoxus" --output_dir example --output_name bacterial_vs_eukaryotic --max_reads 500
+> python source/visualize_embeddings.py --files "example/Pseudomonas_aeruginosa_R1_scores_len_emb.parquet,example/Saccharomyces_paradoxus_R1_scores_len_emb.parquet" --labels "P. aeruginosa,S. paradoxus" --output_dir example --output_name bacterial_vs_eukaryotic_pca --method pca --max_reads 500
 > ```
 
 The t-SNE output will be in example/bacterial_vs_eukaryotic.png and .pdf, and looks like this:
@@ -548,7 +548,7 @@ The visualization script now requires explicit parameters for all inputs:
 
 **Optional parameters:**
 - `--method`: Choose between `tsne` or `pca` (default: tsne)
-- `--max_samples`: Maximum samples per category (default: 1000)
+- `--max_reads`: Maximum reads per category (default: 1000)
 - `--perplexity`: Perplexity parameter for fine-tuning t-SNE behavior
 
 
@@ -572,7 +572,7 @@ The script creates 4-panel plots saved in both PNG and PDF formats that reveal:
 **Visualization Options:**
 - `--method`: Choose `tsne` or `pca` (default: `tsne`)
 - `--output_name`: Custom output filename (generates both `.png` and `.pdf`)
-- `--max_samples`: Limit samples per category for faster processing
+- `--max_reads`: Limit reads per category for faster processing
 - `--perplexity` and `--n_iter`: Fine-tune t-SNE parameters
 
 **Troubleshooting visualization:**
@@ -582,12 +582,6 @@ If embeddings are missing:
 # Error: No embedding parquet files found in example
 # Solution: Re-run BBERT with --emb_out and --max_reads flags
 python bbert.py example/*.fasta.gz --output_dir example --emb_out --max_reads 1000
-```
-
-If visualization fails:
-```bash
-# Install additional dependencies if needed
-pip install matplotlib seaborn scikit-learn
 ```
 
 ## 6. Genomic Accuracy Analysis
@@ -611,7 +605,7 @@ python source/test_genomic_accuracy.py \
 # Analyze eukaryotic genome (S.cerevisiae example)
 python source/test_genomic_accuracy.py \
     --fasta example/GCF_000146045_S_cerevisiae.fasta \
-    --gff example/GCF_000146045S_cerevisiae.gff \
+    --gtf example/GCF_000146045_S_cerevisiae.gtf \
     --is_bact false \
     --taxon "S.cerevisiae" \
     --output_dir tests \
@@ -620,7 +614,7 @@ python source/test_genomic_accuracy.py \
 # Analyze archaeal genome (M.smithii example)
 python source/test_genomic_accuracy.py \
     --fasta example/GCF_000016525_M_smithii.fasta \
-    --gff example/GCF_000016525_M_smithii.gtf \
+    --gtf example/GCF_000016525_M_smithii.gtf \
     --is_bact true \
     --taxon "M.smithii" \
     --output_dir tests \
@@ -631,8 +625,8 @@ python source/test_genomic_accuracy.py \
 > ```cmd
 > mkdir tests
 > python source/test_genomic_accuracy.py --fasta example/GCF_000016525_P_aeruginosa.fasta --gtf example/GCF_000016525_P_aeruginosa.gtf --is_bact true --taxon "P.aeruginosa" --reads_per_cds 1 --output_dir tests --verbose
-> python source/test_genomic_accuracy.py --fasta example/GCF_000146045_S_cerevisiae.fasta --gff example/GCF_000146045S_cerevisiae.gff --is_bact false --taxon "S.cerevisiae" --output_dir tests --reads_per_cds 1
-> python source/test_genomic_accuracy.py --fasta example/GCF_000016525_M_smithii.fasta --gff example/GCF_000016525_M_smithii.gtf --is_bact true --taxon "M.smithii" --output_dir tests --reads_per_cds 2
+> python source/test_genomic_accuracy.py --fasta example/GCF_000146045_S_cerevisiae.fasta --gtf example/GCF_000146045_S_cerevisiae.gtf --is_bact false --taxon "S.cerevisiae" --output_dir tests --reads_per_cds 1
+> python source/test_genomic_accuracy.py --fasta example/GCF_000016525_M_smithii.fasta --gtf example/GCF_000016525_M_smithii.gtf --is_bact true --taxon "M.smithii" --output_dir tests --reads_per_cds 2
 > ```
 
 ### What This Analysis Does
@@ -656,30 +650,38 @@ The genomic accuracy analysis performs comprehensive evaluation by:
 - `--noncoding_reads N`: Override with specific number of non-coding reads
 - `--verbose`: Show detailed BBERT inference progress
 
-### Advanced Features
-
-**Bias Correction**: The analysis includes correction for systematic bacterial classification bias where:
-- Noncoding sequences from bacterial genomes are often misclassified as non-bacterial
-- Coding sequences from non-bacterial genomes are often misclassified as bacterial
-
-The script reports both:
-- **Original approach**: Standard probability thresholds
-- **Custom approach**: Uses loss score threshold (1.3654) for problematic cases
-- **Improvement metrics**: Shows how many additional predictions are correct with bias correction
-
 ### Sample Output
 
+Example output from running the M.smithii archaeal genome test:
+
 ```
+================================================================================
+BBERT GENOMIC TEST RESULTS - M.smithii
+================================================================================
+Total test reads: 3868
+  Coding reads: 3553
+  Non-coding reads: 315
+
+SEQUENCE TYPE CLASSIFICATION:
+  Coding prediction:     3225/3553 (90.8%)
+  Non-coding prediction: 290/315 (92.1%)
+  Overall coding/non-coding: 3515/3868 (90.9%)
+
+READING FRAME PREDICTION (coding sequences only):
+  Frame accuracy: 3438/3553 (96.8%)
+
 BACTERIAL CLASSIFICATION:
-  ORIGINAL APPROACH (standard bact_prob >= 0.5 threshold for all):
-    Coding sequences:     800/900 (88.9%)
-    Non-coding sequences: 45/100 (45.0%)
+  Bacterial prediction (overall): 3324/3868 (85.9%)
+    Coding sequences:     3281/3553 (92.3%)
+    Non-coding sequences: 43/315 (13.7%)
 
-  CUSTOM APPROACH (loss threshold 1.3654 for problematic cases):
-    Coding sequences:     800/900 (88.9%) [standard 0.5 threshold]
-    Non-coding sequences: 85/100 (85.0%) [loss 1.3654 threshold]
-
-  IMPROVEMENT: +40 more correct predictions with custom approach
+PROBABILITY DISTRIBUTIONS:
+  Mean bacterial probability (all): 0.811
+  Mean bacterial probability (coding seqs): 0.859
+  Mean bacterial probability (non-coding seqs): 0.270
+  Mean coding probability (all): 0.777
+  Mean coding probability (coding seqs): 0.832
+  Mean coding probability (non-coding seqs): 0.155
 ```
 
 
