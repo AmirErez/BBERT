@@ -64,12 +64,12 @@ class TestInferenceAccuracy(unittest.TestCase):
     def test_probability_ranges(self):
         """Test that probabilities are in valid ranges [0,1]."""
         # Test bacterial probabilities
-        self.assertTrue((self.results['bact_prob'] >= 0).all(), "Bacterial probabilities should be ≥ 0")
-        self.assertTrue((self.results['bact_prob'] <= 1).all(), "Bacterial probabilities should be ≤ 1")
-        
-        # Test coding probabilities  
-        self.assertTrue((self.results['coding_prob'] >= 0).all(), "Coding probabilities should be ≥ 0")
-        self.assertTrue((self.results['coding_prob'] <= 1).all(), "Coding probabilities should be ≤ 1")
+        self.assertTrue((self.results['bact_prob'] >= 0).all(), "Bacterial probabilities should be >= 0")
+        self.assertTrue((self.results['bact_prob'] <= 1).all(), "Bacterial probabilities should be <= 1")
+
+        # Test coding probabilities
+        self.assertTrue((self.results['coding_prob'] >= 0).all(), "Coding probabilities should be >= 0")
+        self.assertTrue((self.results['coding_prob'] <= 1).all(), "Coding probabilities should be <= 1")
     
     def test_frame_probabilities_sum(self):
         """Test that frame probabilities approximately sum to 1."""
@@ -141,9 +141,9 @@ class TestInferenceAccuracy(unittest.TestCase):
         """Test that sequence lengths are correct."""
         # All sequences should be ~100bp (102bp including special tokens)
         lengths = self.results['len'].values
-        
-        self.assertTrue((lengths >= 100).all(), "All sequences should be ≥ 100bp")
-        self.assertTrue((lengths <= 105).all(), "All sequences should be ≤ 105bp")
+
+        self.assertTrue((lengths >= 100).all(), "All sequences should be >= 100bp")
+        self.assertTrue((lengths <= 105).all(), "All sequences should be <= 105bp")
     
     def test_loss_values(self):
         """Test that loss values are reasonable."""
@@ -171,10 +171,10 @@ class TestInferenceAccuracy(unittest.TestCase):
         print("\nSUMMARY STATISTICS:")
         ecoli_mask = self.results['id'].str.contains('NC_000913')
         saccharomyces_mask = self.results['id'].str.contains('NC_001133')
-        
-        print(f"E. coli bacterial prob:           {self.results[ecoli_mask]['bact_prob'].mean():.3f} ± "
+
+        print(f"E. coli bacterial prob:           {self.results[ecoli_mask]['bact_prob'].mean():.3f} +/- "
               f"{self.results[ecoli_mask]['bact_prob'].std():.3f}")
-        print(f"Saccharomyces cerevisiae prob:    {self.results[saccharomyces_mask]['bact_prob'].mean():.3f} ± "
+        print(f"Saccharomyces cerevisiae prob:    {self.results[saccharomyces_mask]['bact_prob'].mean():.3f} +/- "
               f"{self.results[saccharomyces_mask]['bact_prob'].std():.3f}")
 
 if __name__ == '__main__':

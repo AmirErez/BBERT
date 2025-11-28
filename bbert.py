@@ -211,7 +211,7 @@ def validate_input_files(files):
 def show_usage():
     """Show usage information"""
     print("""
-🧬 BBERT - BERT for Bacterial DNA Classification
+BBERT - BERT for Bacterial DNA Classification
 
 USAGE:
     python bbert.py <input_files...> --output_dir <directory> [OPTIONS]
@@ -291,8 +291,8 @@ def main():
     
     # Show header
     print()
-    print("🧬 BBERT - BERT for Bacterial DNA Classification")
-    print("==================================================")
+    print("BBERT - BERT for Bacterial DNA Classification")
+    print("==============================================")
     print()
     
     # Run system checks

@@ -334,7 +334,7 @@ if __name__ == "__main__":
         logger.info(f"mean speed: {speed:.2f} reads/sec")
 
         if emb_out:
-            # Convert [data_len, seq_len, hidden_size] → [data_len * seq_len, hidden_size]
+            # Convert [data_len, seq_len, hidden_size] -> [data_len * seq_len, hidden_size]
             flat_emb_array = emb_array.reshape(-1, hidden_size)
 
             # First level: fixed-size lists of hidden_size (vectors)
