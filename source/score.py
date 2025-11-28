@@ -16,9 +16,8 @@ import psutil
 from pynvml import nvmlInit, nvmlDeviceGetHandleByIndex, nvmlDeviceGetMemoryInfo, nvmlDeviceGetUtilizationRates
 
 from BERT_model.dataset import FastqIterableDataset
-from BERT_model.utils import get_true_label, log_resources, clear_GPU, setup_logger
+from BERT_model.utils import log_resources, clear_GPU, setup_logger, get_slurm_cpus
 from BERT_model.collator import CollateFnWithTokenizer
-from emb_model.architecture import BertClassifier
 
 nvmlInit()
 os.environ["WANDB_DISABLED"] = "true"
@@ -31,14 +30,6 @@ if not logger.hasHandlers():
         handlers=[logging.StreamHandler()],     # Output to console
         datefmt='%Y-%m-%d %H:%M:%S'             # Custom date format (excluding milliseconds)
     )
-
-slurm_cpus = os.environ.get("SLURM_CPUS_PER_TASK")
-if slurm_cpus:
-    slurm_cpus = int(slurm_cpus)
-else:
-    slurm_cpus = 1  # Default to 1 if not running under SLURM
-
-slurm_cpus = os.environ.get("SLURM_CPUS_PER_TASK")
 
 parser = argparse.ArgumentParser(description="Run scoring on a FASTA, FASTQ or GZIP file and save the output.")
 parser.add_argument("model_path", type=str, help="Path to the model")
@@ -99,7 +90,8 @@ if __name__ == "__main__":
             handlers=[logging.StreamHandler()],
             datefmt='%Y-%m-%d %H:%M:%S'
         )
-    
+
+    slurm_cpus = get_slurm_cpus()
     logging.info(f"SLURM CPUs: \t{slurm_cpus}")
     logging.info(f"Model path: \t{model_path}")
     logging.info(f"Input file: \t{file_path}")

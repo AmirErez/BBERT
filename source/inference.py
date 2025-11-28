@@ -19,13 +19,13 @@ warnings.filterwarnings("ignore", message="You are using `torch.load` with `weig
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from BERT_model.dataset import FastqIterableDataset
-from BERT_model.utils import clear_GPU, setup_logger, label_to_frame, get_resources_msg
+from BERT_model.utils import clear_GPU, setup_logger, label_to_frame, get_resources_msg, get_slurm_cpus
 from BERT_model.collator import CollateFnWithTokenizer
-from emb_class_frame.architecture import BertClassifier
+from emb_model.architecture import BertClassifier
 
 os.environ["WANDB_DISABLED"] = "true"
 
-slurm_cpus = int(os.environ.get("SLURM_CPUS_PER_TASK", 1))
+slurm_cpus = get_slurm_cpus()
 # Mac and Windows have multiprocessing issues with DataLoader, use single worker
 import platform
 if platform.system() in ["Darwin", "Windows"]:  # macOS and Windows
@@ -147,12 +147,8 @@ if __name__ == "__main__":
 
     verbose = True  # or use argparse to pass --verbose
     logger = setup_logger(verbose, log_file=os.path.join(output_dir, "inference.log"))
-    
+
     logger.info(f'batch size = {batch_size//1024}K, chunk size = {chunk_size//1024}K')
-    if slurm_cpus:
-        slurm_cpus = int(slurm_cpus)
-    else:
-        slurm_cpus = 1  # Default to 1 if not running under SLURM
     num_cpus = mp.cpu_count()
     logger.info(f"CPUs allocated by SLURM: {slurm_cpus}, workers_num = {num_workers}")
 

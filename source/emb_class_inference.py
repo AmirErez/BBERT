@@ -3,6 +3,7 @@ import sys
 import multiprocessing as mp
 import subprocess
 import time
+import argparse
 
 import pandas as pd
 import torch
@@ -12,40 +13,58 @@ from transformers import BertForMaskedLM, AutoTokenizer
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from BERT_model.dataset import FastqIterableDataset
-from BERT_model.utils import get_true_label, log_resources, clear_GPU, setup_logger, label_to_frame
+from BERT_model.utils import get_true_label, log_resources, clear_GPU, setup_logger, label_to_frame, get_slurm_cpus
 from BERT_model.collator import CollateFnWithTokenizer
 from emb_model.architecture import BertClassifier
 
 os.environ["WANDB_DISABLED"] = "true"
-slurm_cpus = os.environ.get("SLURM_CPUS_PER_TASK")
 
-verbose = True  # or use argparse to pass --verbose
-logger = setup_logger(verbose)
+# Parse command line arguments
+parser = argparse.ArgumentParser(description='Run inference with reading frame classifier on BBERT embeddings')
+parser.add_argument('--dataset', type=str, required=True,
+                    help='Path to input dataset (FASTA/FASTQ file)')
+parser.add_argument('--model_path', type=str, default='models/diverse_bact_12_768_6_20000/checkpoint-32500',
+                    help='Path to pretrained BBERT model (default: %(default)s)')
+parser.add_argument('--classifier_path', type=str, default='cnn_emb_model/models/classifier_model_2000K_37e.pth',
+                    help='Path to trained classifier model (default: %(default)s)')
+parser.add_argument('--output', type=str, default=None,
+                    help='Path to save results CSV (default: input filename with _frames.csv suffix)')
+parser.add_argument('--batch_size', type=int, default=2048,
+                    help='Batch size for inference (default: %(default)s)')
+parser.add_argument('--max_reads', type=int, default=None,
+                    help='Maximum number of reads to process (default: all reads)')
+parser.add_argument('--verbose', action='store_true', default=True,
+                    help='Enable verbose logging (default: %(default)s)')
+args = parser.parse_args()
 
-if slurm_cpus:
-    slurm_cpus = int(slurm_cpus)
-else:
-    slurm_cpus = 1  # Default to 1 if not running under SLURM
+logger = setup_logger(args.verbose)
+
+slurm_cpus = get_slurm_cpus()
 logger.info(f"CPUs allocated by SLURM: {slurm_cpus}")
 
-dataset_filename = 'test_frame_1000K_R1.fasta'
-BBERT_model_path = 'models/diverse_bact_12_768_6_20000/checkpoint-32500'
-dataset_dir = 'D:/data/frame_bact_test_dataset'
-class_model_path = f'cnn_emb_model/models/classifier_model_2000K_37e.pth'
+# Use argument values
+BBERT_model_path = args.model_path
+class_model_path = args.classifier_path
+dataset_path = args.dataset
 
-dataset_path = os.path.join(dataset_dir, dataset_filename)
-output_filepath = os.path.join(dataset_dir, dataset_filename.replace('.fasta', '_frames.csv'))
+# Determine output path
+if args.output:
+    output_filepath = args.output
+else:
+    # Auto-generate output path from input filename
+    base_name = os.path.basename(dataset_path)
+    output_dir = os.path.dirname(dataset_path)
+    output_filename = base_name.replace('.fasta', '_frames.csv').replace('.fastq', '_frames.csv')
+    output_filepath = os.path.join(output_dir, output_filename)
 
-batch_size = 2048
+batch_size = args.batch_size
 chunk_size = batch_size * 50
-data_len = None # Set to None to read the entire dataset
+data_len = args.max_reads
 num_workers = 0
 prefetch_factor = None
 
-# seq_length = 102
 hidden_size = 768
 num_classes = 6
-# batches_num = data_len//batch_size
 
 if __name__ == "__main__":
 

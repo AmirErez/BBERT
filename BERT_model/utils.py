@@ -52,6 +52,14 @@ def setup_logger(verbose: bool = False, log_file: str = None) -> logging.Logger:
     LOGGER = logger
     return logger
 
+def get_slurm_cpus() -> int:
+    """Get number of CPUs allocated by SLURM, defaulting to 1 if not running under SLURM."""
+    slurm_cpus = os.environ.get("SLURM_CPUS_PER_TASK")
+    if slurm_cpus:
+        return int(slurm_cpus)
+    else:
+        return 1  # Default to 1 if not running under SLURM
+
 def get_true_label(id):
     frame = int(id.split('|')[-1])
     if frame < 0:

@@ -2,6 +2,7 @@ import os
 import sys
 import multiprocessing as mp
 import time
+import argparse
 
 import torch
 import torch.nn as nn
@@ -12,32 +13,46 @@ from transformers import BertForMaskedLM, AutoTokenizer
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from BERT_model.dataset import FastqIterableDataset
-from BERT_model.utils import get_true_label, log_resources, clear_GPU, setup_logger
+from BERT_model.utils import get_true_label, log_resources, clear_GPU, setup_logger, get_slurm_cpus
 from BERT_model.collator import CollateFnWithTokenizer
 from emb_model.architecture import BertClassifier
 
 os.environ["WANDB_DISABLED"] = "true"
-slurm_cpus = os.environ.get("SLURM_CPUS_PER_TASK")
 
-verbose = True  # or use argparse to pass --verbose
-logger = setup_logger(verbose)
+# Parse command line arguments
+parser = argparse.ArgumentParser(description='Train reading frame classifier on BBERT embeddings')
+parser.add_argument('--dataset', type=str, required=True,
+                    help='Path to training dataset (FASTA/FASTQ file)')
+parser.add_argument('--model_path', type=str, default='models/diverse_bact_12_768_6_20000/checkpoint-32500',
+                    help='Path to pretrained BBERT model (default: %(default)s)')
+parser.add_argument('--batch_size', type=int, default=2048,
+                    help='Batch size for training (default: %(default)s)')
+parser.add_argument('--epochs', type=int, default=37,
+                    help='Number of training epochs (default: %(default)s)')
+parser.add_argument('--max_reads', type=int, default=None,
+                    help='Maximum number of reads to use (default: all reads)')
+parser.add_argument('--output_model', type=str, default=None,
+                    help='Path to save trained model (default: auto-generated based on dataset size)')
+parser.add_argument('--verbose', action='store_true', default=True,
+                    help='Enable verbose logging (default: %(default)s)')
+args = parser.parse_args()
 
-if slurm_cpus:
-    slurm_cpus = int(slurm_cpus)
-else:
-    slurm_cpus = 1  # Default to 1 if not running under SLURM
+logger = setup_logger(args.verbose)
+
+slurm_cpus = get_slurm_cpus()
 logger.info(f"CPUs allocated by SLURM: {slurm_cpus}")
 
-model_path = 'models/diverse_bact_12_768_6_20000/checkpoint-32500'
-dataset_path = 'D:/data/frame_bact_train_dataset/train_frame_5000K_R1.fasta'
+# Use argument values
+model_path = args.model_path
+dataset_path = args.dataset
+batch_size = args.batch_size
+epochs_num = args.epochs
 
-batch_size = 2048
 chunk_size = batch_size * 20
 max_length = 102
-data_len = batch_size * 1000         # Set to None to read the entire dataset
+data_len = args.max_reads if args.max_reads else batch_size * 1000
 num_workers = 0
 prefetch_factor = None
-epochs_num = 37
 
 seq_length = 102
 hidden_size = 768
@@ -61,7 +76,12 @@ if __name__ == "__main__":
     data_len = len(dataset)
     batches_num = data_len//batch_size
     logger.info(f"Dataset length: {data_len} reads - {batches_num} batches of {batch_size} reads")
-    class_model_path = f'cnn_emb_model/models/classifier_model_{data_len//1024}K_{epochs_num}e.pth'
+
+    # Use provided output path or auto-generate one
+    if args.output_model:
+        class_model_path = args.output_model
+    else:
+        class_model_path = f'cnn_emb_model/models/classifier_model_{data_len//1024}K_{epochs_num}e.pth'
     
     dataloader = DataLoader(
         dataset,
