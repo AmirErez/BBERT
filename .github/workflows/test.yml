@@ -1,0 +1,47 @@
+name: ci
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            envfile: BBERT_env.yml
+          - os: macos-latest
+            envfile: BBERT_env_mac.yml
+          - os: windows-latest
+            envfile: BBERT_env_windows_cpu.yml
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true   # model files are ~2GB and require Git LFS :contentReference[oaicite:5]{index=5}
+
+      - uses: mamba-org/setup-micromamba@v2
+        with:
+          environment-file: ${{ matrix.envfile }}
+          cache-environment: true
+          cache-downloads: true
+
+      - name: System diagnostics
+        shell: bash -l {0}
+        run: python bbert.py --check
+
+      - name: Accuracy smoke test
+        shell: bash -l {0}
+        run: python source/test_inference_accuracy.py
+
+      - name: End-to-end example (small)
+        shell: bash -l {0}
+        run: |
+          python bbert.py example/example.fasta \
+            --output_dir example_ci \
+            --batch_size 8 \
+            --max_reads 200
+
