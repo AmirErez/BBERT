@@ -22,74 +22,79 @@ from BERT_model.collator import CollateFnWithTokenizer
 nvmlInit()
 os.environ["WANDB_DISABLED"] = "true"
 
-logger = logging.getLogger()
-if not logger.hasHandlers():
-    logging.basicConfig(
-        level=logging.DEBUG,                    # Set logging level to INFO or DEBUG
-        format='%(asctime)s - %(message)s',     # Customize format
-        handlers=[logging.StreamHandler()],     # Output to console
-        datefmt='%Y-%m-%d %H:%M:%S'             # Custom date format (excluding milliseconds)
-    )
+def setup_logging(verbose=False):
+    """Set up logging configuration."""
+    logger = logging.getLogger()
+    if not logger.hasHandlers():
+        logging.basicConfig(
+            level=logging.DEBUG if verbose else logging.INFO,
+            format='%(asctime)s - %(message)s',
+            handlers=[logging.StreamHandler()],
+            datefmt='%Y-%m-%d %H:%M:%S'
+        )
+    return logger
 
-parser = argparse.ArgumentParser(description="Run scoring on a FASTA, FASTQ or GZIP file and save the output.")
-parser.add_argument("model_path", type=str, help="Path to the model")
-parser.add_argument("file_path", type=str, help="Path to the FASTA, FASTQ or GZIP input file")
-parser.add_argument("scores_filename", type=str, help="Path to save the score output CSV file")
-parser.add_argument("--batch_size", type=int, default=1024, help="Batch size for processing (default: 1024)")
-parser.add_argument("--verbose", action="store_true", help="Enable verbose logging (debug level).")
-    
-args = parser.parse_args()
-model_path = args.model_path
-file_path = args.file_path
-scores_filename = args.scores_filename
-batch_size = args.batch_size
+def create_collate_fn(tokenizer, max_length=102):
+    """
+    Create a collate function for batching sequences.
 
-chunk_size = 10 * batch_size
-max_length = 102
-data_len = None
-num_workers = 1
-prefetch_factor = 2
+    Args:
+        tokenizer: Tokenizer to use for encoding sequences
+        max_length: Maximum sequence length (default: 102)
 
-if args.verbose:
-    logging.getLogger().setLevel(logging.DEBUG)  # Verbose logging enabled
-else:
-    logging.getLogger().setLevel(logging.INFO)  # Default logging
-
-os.makedirs(os.path.dirname(scores_filename), exist_ok=True)
-
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-num_cpus = mp.cpu_count()
-model = BertForMaskedLM.from_pretrained(model_path, local_files_only=True).eval().half().to(device)
-
-tokenizer_path = model_path
-tokenizer = AutoTokenizer.from_pretrained(tokenizer_path)
-
-loss = torch.nn.CrossEntropyLoss()
-
-def collate_fn(batch):
-    seq = [re.sub('[^ACTGN]', 'N', r['seq'].upper()) for r in batch]
-    seq_len = [len(r['seq']) for r in batch]
-    id = [r['id'] for r in batch]
-    encoded_seq = tokenizer(seq, truncation=True, padding='max_length', max_length=max_length, return_tensors='pt')['input_ids']
-    return id, encoded_seq, seq_len
+    Returns:
+        Collate function that processes batches
+    """
+    def collate_fn(batch):
+        seq = [re.sub('[^ACTGN]', 'N', r['seq'].upper()) for r in batch]
+        seq_len = [len(r['seq']) for r in batch]
+        id = [r['id'] for r in batch]
+        encoded_seq = tokenizer(seq, truncation=True, padding='max_length', max_length=max_length, return_tensors='pt')['input_ids']
+        return id, encoded_seq, seq_len
+    return collate_fn
 
 if __name__ == "__main__":
-    
-    # Set logging configuration based on verbosity flag
-    if args.verbose:
-        logging.basicConfig(
-            level=logging.DEBUG,  # Debug level enables both debug and info logs
-            format='%(asctime)s - %(message)s',
-            handlers=[logging.StreamHandler()],
-            datefmt='%Y-%m-%d %H:%M:%S'
-        )
-    else:
-        logging.basicConfig(
-            level=logging.INFO,  # Info level will suppress debug logs
-            format='%(asctime)s - %(message)s',
-            handlers=[logging.StreamHandler()],
-            datefmt='%Y-%m-%d %H:%M:%S'
-        )
+    # Parse command-line arguments
+    parser = argparse.ArgumentParser(description="Run scoring on a FASTA, FASTQ or GZIP file and save the output.")
+    parser.add_argument("model_path", type=str, help="Path to the model")
+    parser.add_argument("file_path", type=str, help="Path to the FASTA, FASTQ or GZIP input file")
+    parser.add_argument("scores_filename", type=str, help="Path to save the score output CSV file")
+    parser.add_argument("--batch_size", type=int, default=1024, help="Batch size for processing (default: 1024)")
+    parser.add_argument("--verbose", action="store_true", help="Enable verbose logging (debug level).")
+
+    args = parser.parse_args()
+    model_path = args.model_path
+    file_path = args.file_path
+    scores_filename = args.scores_filename
+    batch_size = args.batch_size
+
+    # Configuration
+    chunk_size = 10 * batch_size
+    max_length = 102
+    data_len = None
+    num_workers = 1
+    prefetch_factor = 2
+
+    # Set up logging
+    logger = setup_logging(args.verbose)
+
+    # Create output directory if needed
+    os.makedirs(os.path.dirname(scores_filename), exist_ok=True)
+
+    # Set up device and model
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    num_cpus = mp.cpu_count()
+    model = BertForMaskedLM.from_pretrained(model_path, local_files_only=True).eval().half().to(device)
+
+    # Load tokenizer
+    tokenizer_path = model_path
+    tokenizer = AutoTokenizer.from_pretrained(tokenizer_path)
+
+    # Create loss function
+    loss = torch.nn.CrossEntropyLoss()
+
+    # Create collate function
+    collate_fn = create_collate_fn(tokenizer, max_length)
 
     slurm_cpus = get_slurm_cpus()
     logging.info(f"SLURM CPUs: \t{slurm_cpus}")
@@ -98,7 +103,7 @@ if __name__ == "__main__":
     logging.info(f"Score output:\t{scores_filename}")
     logging.info(f"Batch size: \t{batch_size}")
     logging.debug(model.config)
-    
+
     scores_dir = os.path.dirname(scores_filename)
 
     if not os.path.exists(scores_dir):

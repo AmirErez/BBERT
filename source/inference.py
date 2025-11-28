@@ -342,11 +342,12 @@ For more information: https://github.com/AmirErez/BBERT
         # Clean memory
         torch.cuda.empty_cache()
         gc.collect()
-        
-clear_GPU()
-if torch.cuda.is_available():
-    torch.cuda.empty_cache()
-    torch.cuda.ipc_collect()
-gc.collect()
-sys.exit(0)
+
+    # Final cleanup
+    clear_GPU()
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+        torch.cuda.ipc_collect()
+    gc.collect()
+    sys.exit(0)
     
