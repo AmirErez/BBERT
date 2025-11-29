@@ -14,7 +14,7 @@ import tempfile
 import gzip
 
 # Add source directory to path
-sys.path.insert(0, str(Path(__file__).parent.parent / "source"))
+sys.path.insert(0, str(Path(__file__).parent.parent / "scripts" / "testing"))
 
 
 class TestSetupLogging(unittest.TestCase):
@@ -27,7 +27,8 @@ class TestSetupLogging(unittest.TestCase):
         logger = setup_logging()
 
         self.assertIsInstance(logger, logging.Logger)
-        self.assertEqual(logger.name, 'generate_annotated_reads')
+        # Logger name is now from bbert.utils.common since we import from there
+        self.assertEqual(logger.name, 'bbert.utils.common')
 
 
 class TestDetectFileFormat(unittest.TestCase):

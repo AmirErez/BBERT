@@ -1,0 +1,45 @@
+# MANIFEST.in - Specify additional files to include in distribution
+
+# Documentation
+include README.md
+include LICENSE
+include CITATION.cff
+include REFACTORING_SUMMARY.md
+include PIP_INSTALLABLE_PLAN.md
+include IMPLEMENTATION_CHECKLIST.md
+
+# Requirements files
+include requirements.txt
+include requirements-dev.txt
+
+# Configuration files
+include pyproject.toml
+include setup.py
+
+# Example data files
+# Include small test files and compressed reference genomes
+recursive-include examples/data *.fasta *.fasta.gz *.fastq.gz *.gtf.gz
+include examples/data/bacterial_vs_eukaryotic.png
+include examples/data/bacterial_vs_eukaryotic.pdf
+include examples/data/README.md
+
+# Exclude development files
+exclude .gitignore
+exclude .coveragerc
+exclude BBERT_env*.yml
+exclude bbert.py
+
+# Exclude test files from distribution
+prune tests
+prune .github
+prune Graveyard
+prune htmlcov
+prune .cache
+prune .pytest_cache
+
+# Exclude binary and cache files
+global-exclude __pycache__
+global-exclude *.py[co]
+global-exclude .DS_Store
+global-exclude *.so
+global-exclude *.dylib

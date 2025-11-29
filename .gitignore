@@ -1,7 +1,14 @@
+bbert/
+models/
+.idea/
 Graveyard/
-temp/
-example/*.parquet
+tests/
+results/
 .hf_download_temp/
+
+# Generated output files (not package data)
+examples/data/*.parquet
+examples/data/*_scores_*.parquet
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

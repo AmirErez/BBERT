@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Unit tests for inference_utils.py module.
-Tests utility functions used by inference.py.
+Unit tests for bbert.utils.inference module.
+Tests utility functions used by inference.
 """
 
 import unittest
@@ -11,17 +11,8 @@ from pathlib import Path
 import torch
 from unittest.mock import Mock, patch, MagicMock
 
-# Mock heavy imports before importing inference_utils
-sys.modules['BERT_model'] = Mock()
-sys.modules['BERT_model.collator'] = Mock()
-sys.modules['emb_model'] = Mock()
-sys.modules['emb_model.architecture'] = Mock()
-
-# Add source directory to path
-sys.path.insert(0, str(Path(__file__).parent.parent / "source"))
-
-# Import the functions to test
-from inference_utils import get_device, get_output_filename
+# Import the functions to test from bbert package
+from bbert.utils.inference import get_device, get_output_filename
 
 
 class TestGetOutputFilename(unittest.TestCase):
@@ -65,36 +56,36 @@ class TestGetOutputFilename(unittest.TestCase):
 class TestGetDevice(unittest.TestCase):
     """Test get_device function in isolation."""
 
-    @patch('inference_utils.torch.cuda.is_available')
+    @patch('bbert.utils.inference.torch.cuda.is_available')
     def test_cuda_device(self, mock_cuda_available):
         """Test CUDA device detection."""
         mock_cuda_available.return_value = True
 
-        with patch('inference_utils.torch.cuda.get_device_name', return_value='NVIDIA A100'):
-            with patch('inference_utils.torch.cuda.current_device', return_value=0):
+        with patch('bbert.utils.inference.torch.cuda.get_device_name', return_value='NVIDIA A100'):
+            with patch('bbert.utils.inference.torch.cuda.current_device', return_value=0):
                 device, use_half_precision = get_device()
 
         self.assertEqual(device.type, 'cuda')
         self.assertTrue(use_half_precision)
 
-    @patch('inference_utils.torch.cuda.is_available')
+    @patch('bbert.utils.inference.torch.cuda.is_available')
     def test_mps_device(self, mock_cuda_available):
         """Test Apple MPS device detection."""
         mock_cuda_available.return_value = False
 
-        with patch('inference_utils.torch.backends.mps.is_available', return_value=True):
+        with patch('bbert.utils.inference.torch.backends.mps.is_available', return_value=True):
             device, use_half_precision = get_device()
 
         self.assertEqual(device.type, 'mps')
         self.assertFalse(use_half_precision)
 
-    @patch('inference_utils.torch.cuda.is_available')
+    @patch('bbert.utils.inference.torch.cuda.is_available')
     def test_cpu_device(self, mock_cuda_available):
         """Test CPU device fallback."""
         mock_cuda_available.return_value = False
 
         if hasattr(torch.backends, 'mps'):
-            with patch('inference_utils.torch.backends.mps.is_available', return_value=False):
+            with patch('bbert.utils.inference.torch.backends.mps.is_available', return_value=False):
                 device, use_half_precision = get_device()
         else:
             device, use_half_precision = get_device()
@@ -110,14 +101,14 @@ class TestGetDevice(unittest.TestCase):
         # Logger should have been called at least once
         self.assertTrue(mock_logger.info.called)
 
-    @patch('inference_utils.torch.cuda.is_available')
+    @patch('bbert.utils.inference.torch.cuda.is_available')
     def test_cuda_with_logger(self, mock_cuda_available):
         """Test CUDA device with logger to cover lines 25-26."""
         mock_cuda_available.return_value = True
         mock_logger = Mock()
 
-        with patch('inference_utils.torch.cuda.get_device_name', return_value='Tesla V100'):
-            with patch('inference_utils.torch.cuda.current_device', return_value=0):
+        with patch('bbert.utils.inference.torch.cuda.get_device_name', return_value='Tesla V100'):
+            with patch('bbert.utils.inference.torch.cuda.current_device', return_value=0):
                 device, use_half_precision = get_device(logger=mock_logger)
 
         # Check logger was called with GPU name
@@ -126,14 +117,14 @@ class TestGetDevice(unittest.TestCase):
         self.assertIn('Tesla V100', call_arg)
         self.assertIn('CUDA', call_arg)
 
-    @patch('inference_utils.torch.cuda.is_available')
+    @patch('bbert.utils.inference.torch.cuda.is_available')
     def test_cpu_with_logger(self, mock_cuda_available):
         """Test CPU device with logger to cover line 36."""
         mock_cuda_available.return_value = False
         mock_logger = Mock()
 
         if hasattr(torch.backends, 'mps'):
-            with patch('inference_utils.torch.backends.mps.is_available', return_value=False):
+            with patch('bbert.utils.inference.torch.backends.mps.is_available', return_value=False):
                 device, use_half_precision = get_device(logger=mock_logger)
         else:
             device, use_half_precision = get_device(logger=mock_logger)
@@ -149,11 +140,18 @@ class TestLoadBbertModel(unittest.TestCase):
 
     def test_load_bbert_model_basic(self):
         """Test basic BBERT model loading."""
-        from inference_utils import load_bbert_model
+        from bbert.utils.inference import load_bbert_model
 
-        # Mock the classes
-        with patch('inference_utils.BertForMaskedLM') as mock_model_class, \
-             patch('inference_utils.AutoTokenizer') as mock_tokenizer_class:
+        # Mock the classes and os.path.exists for path validation
+        with patch('bbert.utils.inference.BertForMaskedLM') as mock_model_class, \
+             patch('bbert.utils.inference.AutoTokenizer') as mock_tokenizer_class, \
+             patch('bbert.utils.inference.os.path.exists') as mock_exists, \
+             patch('bbert.utils.inference.os.path.join') as mock_join, \
+             patch('bbert.core.collator.CollateFnWithTokenizer') as mock_collator_class:
+
+            # Mock path validation
+            mock_exists.return_value = True
+            mock_join.side_effect = lambda *args: '/'.join(args)
 
             # Mock tokenizer
             mock_tokenizer = Mock()
@@ -161,7 +159,7 @@ class TestLoadBbertModel(unittest.TestCase):
 
             # Mock collator
             mock_collate_fn = Mock()
-            sys.modules['BERT_model.collator'].CollateFnWithTokenizer = Mock(return_value=mock_collate_fn)
+            mock_collator_class.return_value = mock_collate_fn
 
             # Mock model
             mock_model = Mock()
@@ -188,13 +186,19 @@ class TestLoadBbertModel(unittest.TestCase):
 
     def test_load_bbert_model_half_precision(self):
         """Test BBERT model loading with half precision."""
-        from inference_utils import load_bbert_model
+        from bbert.utils.inference import load_bbert_model
 
-        with patch('inference_utils.BertForMaskedLM') as mock_model_class, \
-             patch('inference_utils.AutoTokenizer') as mock_tokenizer_class:
+        with patch('bbert.utils.inference.BertForMaskedLM') as mock_model_class, \
+             patch('bbert.utils.inference.AutoTokenizer') as mock_tokenizer_class, \
+             patch('bbert.utils.inference.os.path.exists') as mock_exists, \
+             patch('bbert.utils.inference.os.path.join') as mock_join, \
+             patch('bbert.core.collator.CollateFnWithTokenizer'):
+
+            # Mock path validation
+            mock_exists.return_value = True
+            mock_join.side_effect = lambda *args: '/'.join(args)
 
             mock_tokenizer_class.from_pretrained.return_value = Mock()
-            sys.modules['BERT_model.collator'].CollateFnWithTokenizer = Mock(return_value=Mock())
             mock_model = Mock()
             mock_model_class.from_pretrained.return_value = mock_model
 
@@ -211,13 +215,19 @@ class TestLoadBbertModel(unittest.TestCase):
 
     def test_load_bbert_model_with_logger(self):
         """Test BBERT model loading with logger."""
-        from inference_utils import load_bbert_model
+        from bbert.utils.inference import load_bbert_model
 
-        with patch('inference_utils.BertForMaskedLM') as mock_model_class, \
-             patch('inference_utils.AutoTokenizer') as mock_tokenizer_class:
+        with patch('bbert.utils.inference.BertForMaskedLM') as mock_model_class, \
+             patch('bbert.utils.inference.AutoTokenizer') as mock_tokenizer_class, \
+             patch('bbert.utils.inference.os.path.exists') as mock_exists, \
+             patch('bbert.utils.inference.os.path.join') as mock_join, \
+             patch('bbert.core.collator.CollateFnWithTokenizer'):
+
+            # Mock path validation
+            mock_exists.return_value = True
+            mock_join.side_effect = lambda *args: '/'.join(args)
 
             mock_tokenizer_class.from_pretrained.return_value = Mock()
-            sys.modules['BERT_model.collator'].CollateFnWithTokenizer = Mock(return_value=Mock())
             mock_model_class.from_pretrained.return_value = Mock()
 
             mock_logger = Mock()
@@ -240,16 +250,22 @@ class TestLoadClassifier(unittest.TestCase):
 
     def test_load_classifier_basic(self):
         """Test basic classifier loading."""
-        from inference_utils import load_classifier
+        from bbert.utils.inference import load_classifier
 
-        with patch('inference_utils.torch.load') as mock_torch_load:
+        with patch('bbert.utils.inference.torch.load') as mock_torch_load, \
+             patch('bbert.utils.inference.os.path.exists') as mock_exists, \
+             patch('bbert.models.classifier.BertClassifier') as mock_classifier_class:
+
+            # Mock path validation
+            mock_exists.return_value = True
+
             # Mock checkpoint
             mock_checkpoint = {'model_state_dict': {'layer1': 'weights'}}
             mock_torch_load.return_value = mock_checkpoint
 
             # Mock classifier class
             mock_classifier = Mock()
-            sys.modules['emb_model.architecture'].BertClassifier = Mock(return_value=mock_classifier)
+            mock_classifier_class.return_value = mock_classifier
 
             device = torch.device('cpu')
             classifier = load_classifier(
@@ -261,7 +277,7 @@ class TestLoadClassifier(unittest.TestCase):
             )
 
             # Verify classifier was created with correct params
-            sys.modules['emb_model.architecture'].BertClassifier.assert_called_once_with(768, 2)
+            mock_classifier_class.assert_called_once_with(768, 2)
 
             # Verify checkpoint was loaded
             mock_torch_load.assert_called_once_with('/fake/classifier.pt', weights_only=True, map_location=device)
@@ -274,12 +290,18 @@ class TestLoadClassifier(unittest.TestCase):
 
     def test_load_classifier_half_precision(self):
         """Test classifier loading with half precision."""
-        from inference_utils import load_classifier
+        from bbert.utils.inference import load_classifier
 
-        with patch('inference_utils.torch.load') as mock_torch_load:
+        with patch('bbert.utils.inference.torch.load') as mock_torch_load, \
+             patch('bbert.utils.inference.os.path.exists') as mock_exists, \
+             patch('bbert.models.classifier.BertClassifier') as mock_classifier_class:
+
+            # Mock path validation
+            mock_exists.return_value = True
+
             mock_torch_load.return_value = {'model_state_dict': {}}
             mock_classifier = Mock()
-            sys.modules['emb_model.architecture'].BertClassifier = Mock(return_value=mock_classifier)
+            mock_classifier_class.return_value = mock_classifier
 
             load_classifier(
                 model_path='/fake/classifier.pt',
@@ -294,12 +316,18 @@ class TestLoadClassifier(unittest.TestCase):
 
     def test_load_classifier_with_logger(self):
         """Test classifier loading with logger and custom name."""
-        from inference_utils import load_classifier
+        from bbert.utils.inference import load_classifier
 
-        with patch('inference_utils.torch.load') as mock_torch_load:
+        with patch('bbert.utils.inference.torch.load') as mock_torch_load, \
+             patch('bbert.utils.inference.os.path.exists') as mock_exists, \
+             patch('bbert.models.classifier.BertClassifier') as mock_classifier_class:
+
+            # Mock path validation
+            mock_exists.return_value = True
+
             mock_torch_load.return_value = {'model_state_dict': {}}
             mock_classifier = Mock()
-            sys.modules['emb_model.architecture'].BertClassifier = Mock(return_value=mock_classifier)
+            mock_classifier_class.return_value = mock_classifier
 
             mock_logger = Mock()
             load_classifier(

@@ -12,7 +12,7 @@ import pandas as pd
 import logging
 
 # Add source directory to path
-sys.path.insert(0, str(Path(__file__).parent.parent / "source"))
+sys.path.insert(0, str(Path(__file__).parent.parent / "examples" / "utilities"))
 
 
 class TestConvertScoresToTsv(unittest.TestCase):
@@ -142,7 +142,7 @@ class TestDownloadModels(unittest.TestCase):
 
     def test_is_lfs_pointer_true(self):
         """Test LFS pointer detection for actual LFS pointer."""
-        from download_models import is_lfs_pointer
+        from bbert.cli.commands.download import is_lfs_pointer
         from pathlib import Path
         import tempfile
 
@@ -161,7 +161,7 @@ class TestDownloadModels(unittest.TestCase):
 
     def test_is_lfs_pointer_false_large_file(self):
         """Test LFS pointer detection for large file."""
-        from download_models import is_lfs_pointer
+        from bbert.cli.commands.download import is_lfs_pointer
         from pathlib import Path
         import tempfile
 
@@ -178,7 +178,7 @@ class TestDownloadModels(unittest.TestCase):
 
     def test_is_lfs_pointer_false_regular_file(self):
         """Test LFS pointer detection for regular small file."""
-        from download_models import is_lfs_pointer
+        from bbert.cli.commands.download import is_lfs_pointer
         from pathlib import Path
         import tempfile
 
@@ -193,12 +193,12 @@ class TestDownloadModels(unittest.TestCase):
         finally:
             os.unlink(temp_path)
 
-    @patch('download_models.Path.is_file')
-    @patch('download_models.Path.is_dir')
-    @patch('download_models.is_lfs_pointer')
+    @patch('bbert.cli.commands.download.Path.is_file')
+    @patch('bbert.cli.commands.download.Path.is_dir')
+    @patch('bbert.cli.commands.download.is_lfs_pointer')
     def test_check_model_exists_real_file(self, mock_is_lfs, mock_is_dir, mock_is_file):
         """Test check_model_exists for real file."""
-        from download_models import check_model_exists
+        from bbert.cli.commands.download import check_model_exists
         from pathlib import Path
 
         mock_is_file.return_value = True
@@ -208,11 +208,11 @@ class TestDownloadModels(unittest.TestCase):
         result = check_model_exists(Path('/fake/model.bin'))
         self.assertTrue(result)
 
-    @patch('download_models.Path.is_file')
-    @patch('download_models.is_lfs_pointer')
+    @patch('bbert.cli.commands.download.Path.is_file')
+    @patch('bbert.cli.commands.download.is_lfs_pointer')
     def test_check_model_exists_lfs_pointer(self, mock_is_lfs, mock_is_file):
         """Test check_model_exists rejects LFS pointers."""
-        from download_models import check_model_exists
+        from bbert.cli.commands.download import check_model_exists
         from pathlib import Path
 
         mock_is_file.return_value = True
