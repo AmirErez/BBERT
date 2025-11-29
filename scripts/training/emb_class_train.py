@@ -80,7 +80,7 @@ if __name__ == "__main__":
     if args.output_model:
         class_model_path = args.output_model
     else:
-        class_model_path = f'cnn_emb_model/models/classifier_model_{data_len//1024}K_{epochs_num}e.pth'
+        class_model_path = f'models/classifiers/classifier_model_{data_len//1024}K_{epochs_num}e.pth'
     
     dataloader = DataLoader(
         dataset,

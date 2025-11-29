@@ -222,10 +222,6 @@ from bbert.utils.common import setup_logging, FRAME_MAPPING
 - ✅ **Model compatibility**: All existing models work with new code
 - ✅ **Conda environments**: Existing conda environments still work with `pip install -e .`
 
-### Known Issues
-
-- Old `python bbert.py` wrapper not yet updated (use `bbert infer` instead)
-
 ### Future Plans
 
 - [ ] Publish to PyPI (pip install bbert)

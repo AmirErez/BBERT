@@ -135,37 +135,7 @@ cd BBERT
 
 **Note about model files:**
 - Models are automatically downloaded from [Hugging Face Hub](https://huggingface.co/AmirErez/BBERT-models) on first run
-- No Git LFS setup required!
-- To manually download models: `bbert download` or `bbert download`
-
-<details>
-<summary><b>Optional: Using Git LFS (legacy method)</b></summary>
-
-If you prefer to use Git LFS instead of Hugging Face downloads:
-
-**On Unix/Linux:**
-```bash
-sudo apt-get install git-lfs  # Ubuntu/Debian
-# OR
-sudo yum install git-lfs      # CentOS/RHEL/Fedora
-```
-
-**On Mac:**
-```bash
-# Using Homebrew
-brew install git-lfs
-# OR MacPorts
-sudo port install git-lfs
-```
-
-**Initialize Git LFS:**
-```bash
-git lfs install
-git lfs pull
-```
-
-**Note:** Git LFS has bandwidth limits on GitHub. Hugging Face provides unlimited bandwidth.
-</details>
+- To manually download models: `bbert download`
 
 ### 1.2. Install using Conda
 
@@ -773,7 +743,7 @@ If you cannot install Git, here are alternative approaches:
      - `models/classifiers/coding/models/`
 
 #### Option 2: Use Git GUI Clients
-Some GUI clients for Git (note: model files download automatically from Hugging Face, no Git LFS needed):
+Some GUI clients for Git (model files download automatically from Hugging Face):
 - **GitHub Desktop:** https://desktop.github.com/
 - **Sourcetree:** https://www.sourcetreeapp.com/
 - **GitKraken:** https://www.gitkraken.com/
@@ -782,9 +752,6 @@ Some GUI clients for Git (note: model files download automatically from Hugging 
 
 #### Issue: "git: command not found"
 **Solution:** Install Git using the instructions above.
-
-#### Issue: "git-lfs: command not found"
-**Solution:** Git LFS is optional. Models are automatically downloaded from Hugging Face Hub. If you still want to use Git LFS, see the legacy instructions in Section 1.1.
 
 #### Issue: "tokenizers version conflict" (transformers ImportError)
 **Solution:** Install the correct tokenizers version:
@@ -827,7 +794,6 @@ conda activate BBERT_windows
 1. Check internet connection
 2. Install huggingface_hub: `pip install huggingface_hub`
 3. Manually download: `bbert download`
-4. Alternative: Use Git LFS method (see Section 1.1)
 
 ### Getting Help
 

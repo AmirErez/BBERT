@@ -24,7 +24,7 @@ parser.add_argument('--dataset', type=str, required=True,
                     help='Path to input dataset (FASTA/FASTQ file)')
 parser.add_argument('--model_path', type=str, default='models/diverse_bact_12_768_6_20000/checkpoint-32500',
                     help='Path to pretrained BBERT model (default: %(default)s)')
-parser.add_argument('--classifier_path', type=str, default='cnn_emb_model/models/classifier_model_2000K_37e.pth',
+parser.add_argument('--classifier_path', type=str, default='models/classifiers/classifier_model_2000K_37e.pth',
                     help='Path to trained classifier model (default: %(default)s)')
 parser.add_argument('--output', type=str, default=None,
                     help='Path to save results CSV (default: input filename with _frames.csv suffix)')
@@ -42,7 +42,7 @@ slurm_cpus = get_slurm_cpus()
 logger.info(f"CPUs allocated by SLURM: {slurm_cpus}")
 
 # Use argument values
-BBERT_model_path = args.model_path
+bbert_model_path = args.model_path
 class_model_path = args.classifier_path
 dataset_path = args.dataset
 
@@ -70,12 +70,12 @@ if __name__ == "__main__":
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     num_cpus = mp.cpu_count()
 
-    model = BertForMaskedLM.from_pretrained(BBERT_model_path, local_files_only=True).eval().to(device)
+    model = BertForMaskedLM.from_pretrained(bbert_model_path, local_files_only=True).eval().to(device)
     # model.half()
     for param in model.parameters():
         param.requires_grad = False
 
-    tokenizer_path = BBERT_model_path
+    tokenizer_path = bbert_model_path
     tokenizer = AutoTokenizer.from_pretrained(tokenizer_path)
     collate_fn_instance = CollateFnWithTokenizer(tokenizer)
 

@@ -3,10 +3,8 @@
 # Documentation
 include README.md
 include LICENSE
+include CHANGELOG.md
 include CITATION.cff
-include REFACTORING_SUMMARY.md
-include PIP_INSTALLABLE_PLAN.md
-include IMPLEMENTATION_CHECKLIST.md
 
 # Requirements files
 include requirements.txt
