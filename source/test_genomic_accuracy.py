@@ -15,18 +15,14 @@ import argparse
 import logging
 import tempfile
 import shutil
+from typing import Dict, Tuple, Optional
 import pandas as pd
 import numpy as np
 from pathlib import Path
+from logging import Logger
 
-def setup_logging():
-    """Set up logging configuration."""
-    logging.basicConfig(
-        level=logging.INFO,
-        format='%(asctime)s - %(levelname)s - %(message)s',
-        datefmt='%Y-%m-%d %H:%M:%S'
-    )
-    return logging.getLogger(__name__)
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from BERT_model.common_utils import setup_logging, FRAME_MAPPING, get_predicted_frame
 
 def run_command(cmd, description, logger, check=True):
     """Run a shell command with logging."""
@@ -152,7 +148,7 @@ def run_bbert_inference(fasta_file, output_dir, logger, batch_size=128):
     logger.info(f"BBERT inference completed: {expected_output}")
     return expected_output
 
-def load_and_merge_data(metadata_file, bbert_results_file, logger):
+def load_and_merge_data(metadata_file: str, bbert_results_file: str, logger: Logger) -> pd.DataFrame:
     """Load metadata and BBERT results, then merge them."""
     # Load ground truth metadata
     metadata_df = pd.read_csv(metadata_file)
@@ -177,7 +173,7 @@ def load_and_merge_data(metadata_file, bbert_results_file, logger):
     return df
 
 
-def analyze_coding_classification(df, coding_df, noncoding_df):
+def analyze_coding_classification(df: pd.DataFrame, coding_df: pd.DataFrame, noncoding_df: pd.DataFrame) -> Dict:
     """Analyze coding/noncoding classification performance."""
     total_reads = len(df)
     true_coding = df['is_coding'].values
@@ -214,17 +210,12 @@ def analyze_coding_classification(df, coding_df, noncoding_df):
     }
 
 
-def analyze_frame_prediction(coding_df):
+def analyze_frame_prediction(coding_df: pd.DataFrame) -> Dict:
     """Analyze reading frame prediction for coding sequences."""
     if coding_df.empty:
         return {'frame_accuracy': 0, 'frame_correct': 0}
 
-    # BBERT frame mapping: positions 0-5 correspond to frames [-1, -3, -2, +1, +3, +2]
-    frame_mapping = [-1, -3, -2, +1, +3, +2]
-
-    def get_predicted_frame(frame_prob_array):
-        return frame_mapping[np.argmax(frame_prob_array)]
-
+    # Use shared frame mapping and prediction function
     coding_df['predicted_frame'] = coding_df['frame_prob'].apply(get_predicted_frame)
 
     # Compare predicted vs true frames directly
@@ -235,7 +226,12 @@ def analyze_frame_prediction(coding_df):
     }
 
 
-def analyze_bacterial_classification(df, coding_df, noncoding_df, is_bacterial):
+def analyze_bacterial_classification(
+    df: pd.DataFrame,
+    coding_df: pd.DataFrame,
+    noncoding_df: pd.DataFrame,
+    is_bacterial: bool
+) -> Dict:
     """Analyze bacterial/non-bacterial classification performance."""
     total_reads = len(df)
     true_bacterial = df['is_bacterial'].values
@@ -456,7 +452,7 @@ FILES GENERATED:
     return parser.parse_args()
 
 
-def validate_test_inputs(args, logger):
+def validate_test_inputs(args: argparse.Namespace, logger: Logger) -> Tuple[Optional[str], Optional[bool]]:
     """
     Validate inputs for genomic accuracy test.
 

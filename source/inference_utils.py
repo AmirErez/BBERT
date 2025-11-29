@@ -4,11 +4,13 @@ This module contains testable helper functions extracted from inference.py.
 """
 
 import os
+from typing import Optional, Tuple
 import torch
 from transformers import BertForMaskedLM, AutoTokenizer
+from logging import Logger
 
 
-def get_device(logger=None):
+def get_device(logger: Optional[Logger] = None) -> Tuple[torch.device, bool]:
     """
     Detect and return the best available device for inference.
 
@@ -39,7 +41,7 @@ def get_device(logger=None):
     return device, use_half_precision
 
 
-def get_output_filename(file_path, output_dir, emb_out=False):
+def get_output_filename(file_path: str, output_dir: str, emb_out: bool = False) -> str:
     """
     Generate output filename from input file path.
 
@@ -69,7 +71,13 @@ def get_output_filename(file_path, output_dir, emb_out=False):
         return os.path.join(output_dir, f"{base_name}_scores_len.parquet")
 
 
-def load_bbert_model(model_path, tokenizer_path, device, use_half_precision, logger=None):
+def load_bbert_model(
+    model_path: str,
+    tokenizer_path: str,
+    device: torch.device,
+    use_half_precision: bool,
+    logger: Optional[Logger] = None
+) -> Tuple[BertForMaskedLM, AutoTokenizer, 'CollateFnWithTokenizer']:
     """
     Load BBERT model and tokenizer.
 
@@ -129,7 +137,15 @@ def load_bbert_model(model_path, tokenizer_path, device, use_half_precision, log
         ) from e
 
 
-def load_classifier(model_path, hidden_size, num_classes, device, use_half_precision, logger=None, model_name="Classifier"):
+def load_classifier(
+    model_path: str,
+    hidden_size: int,
+    num_classes: int,
+    device: torch.device,
+    use_half_precision: bool,
+    logger: Optional[Logger] = None,
+    model_name: str = "Classifier"
+) -> 'BertClassifier':
     """
     Load a BertClassifier model.
 

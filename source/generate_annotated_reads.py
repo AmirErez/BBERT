@@ -17,22 +17,18 @@ import sys
 import argparse
 import logging
 import random
+from typing import Dict, List, Tuple, Optional
 import pandas as pd
 import numpy as np
 from pathlib import Path
 from Bio import SeqIO
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
+from logging import Logger
 import gzip
 
-def setup_logging():
-    """Set up logging configuration."""
-    logging.basicConfig(
-        level=logging.INFO,
-        format='%(asctime)s - %(levelname)s - %(message)s',
-        datefmt='%Y-%m-%d %H:%M:%S'
-    )
-    return logging.getLogger(__name__)
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from BERT_model.common_utils import setup_logging
 
 def detect_file_format(file_path):
     """
@@ -82,7 +78,7 @@ def calculate_true_frame(pos, phase):
     frame_offset = (phase - pos) % 3
     return frame_offset + 1
 
-def load_genome_sequences(fasta_file, logger):
+def load_genome_sequences(fasta_file: str, logger: Logger) -> Dict[str, str]:
     """
     Load genome sequences from FASTA file.
 
@@ -101,7 +97,7 @@ def load_genome_sequences(fasta_file, logger):
     return genome
 
 
-def calculate_frame_distribution(reads_per_cds):
+def calculate_frame_distribution(reads_per_cds: int) -> Dict[int, int]:
     """
     Calculate how many reads to generate for each reading frame.
 
@@ -127,8 +123,17 @@ def calculate_frame_distribution(reads_per_cds):
         return frame_counts
 
 
-def generate_reads_from_cds(chrom, start, end, strand, phase, sense_seq,
-                             frame_counts, read_length, is_bacterial):
+def generate_reads_from_cds(
+    chrom: str,
+    start: int,
+    end: int,
+    strand: str,
+    phase: int,
+    sense_seq: str,
+    frame_counts: Dict[int, int],
+    read_length: int,
+    is_bacterial: bool
+) -> List[Dict]:
     """
     Generate reads from a single CDS region across all requested frames.
 
