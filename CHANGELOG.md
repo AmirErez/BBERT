@@ -112,6 +112,15 @@ All scripts now use `bbert` package imports:
   - All reference genome files are now correctly referenced as compressed files
 - **Impact**: All README examples now work correctly with complete workflows
 
+#### GitHub Actions CI/CD Workflow
+- **Fixed `.github/workflows/test.yml`**: Updated workflow for v0.2.0 package structure
+  - Added `pip install -e .` step to install package in editable mode
+  - Replaced `python bbert.py --check` → `bbert --version` for system diagnostics
+  - Updated test coverage source from `--source=source` → `--source=bbert`
+  - Replaced `python bbert.py` → `bbert infer` in end-to-end example
+  - Added graceful handling for missing unit tests (tests/ directory in .gitignore)
+- **Impact**: GitHub Actions workflow now runs successfully with v0.2.0 package structure
+
 ### Migration Guide
 
 #### For End Users
