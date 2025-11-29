@@ -342,105 +342,6 @@ bbert download --help
 bbert --version
 ```
 
-### 2.2. Using Python Scripts (Legacy)
-
-BBERT provides a user-friendly Python script that automatically checks your system and provides helpful error messages:
-
-```bash
-python bbert.py
-```
-
-#### System Diagnostics
-Before running analysis, check that everything is set up correctly:
-
-```bash
-python bbert.py --check
-```
-
-#### Usage Examples
-
-**Single file:**
-```bash
-python bbert.py examples/data/example.fasta --output_dir example
-```
-
-**Multiple files:**
-```bash
-python bbert.py examples/data/Pseudo*.fasta.gz --output_dir examples/data/ --batch_size 512
-```
-
-**With embeddings (warning: large files, therefore we invoke the max_reads switch to process only the first 1000 reads from each file):**
-```bash
-python bbert.py \
-    examples/data/Pseudomonas_aeruginosa_R1.fasta.gz \
-    examples/data/Pseudomonas_aeruginosa_R2.fasta.gz \
-    examples/data/Saccharomyces_paradoxus_R1.fasta.gz \
-    examples/data/Saccharomyces_paradoxus_R2.fasta.gz \
-    --output_dir example --emb_out --max_reads 1000
-```
-
-#### What the Script Checks:
-- ✅ Python 3.10+ installation
-- ✅ Required packages (PyTorch, Transformers, BioPython, etc.)
-- ✅ Model files automatically downloaded from Hugging Face
-- ✅ GPU availability (CUDA/MPS)
-- ✅ Input files exist
-- ✅ Conda environment status
-
-### 2.2. Direct Script Usage
-`source/inference.py` — Scoring Script for Sequence Files
-
-This script runs inference on DNA sequencing data using the BBERT model and multiple downstream classifiers (bacterial classification, frame prediction, coding classification).  
-It processes FASTA/FASTQ/GZIP input files, computes probabilities, loss values, and optionally embeddings, and writes results to Parquet files for downstream analysis.
-
-### Features
-- Loads a pretrained BBERT model and three classification heads:
-  - Bacterial classifier (bacteria vs. non-bacteria)
-  - Frame classifier (6 possible reading frames: output positions 0-5 map to frames -1,-3,-2,+1,+3,+2)
-  - Coding classifier (coding vs. non-coding DNA)
-- Supports input formats: `.fasta`, `.fastq`, `.gz`
-- Outputs results to `.parquet` with:
-  - Sequence IDs
-  - Sequence lengths
-  - Cross-entropy loss per read
-  - Predicted probabilities for each classifier
-  - Optional: sequence embeddings (`--emb_out`).*Warning* Slow and takes up a lot of space.
-- Uses **PyArrow** for efficient storage and compression (`zstd`)
-- Supports GPU acceleration and multi-core CPUs (SLURM-friendly)
-
-### Usage
-
-#### Single File
-```bash
-bbert infer examples/data/example.fasta --output_dir example --batch_size 1024
-```
-
-#### Using Wildcards
-```bash
-# All .fasta.gz files in example directory
-bbert infer examples/data/*.fasta.gz --output_dir example
-
-#### With Embeddings (Warning: Large Output Files)
-```bash
-bbert infer \
-    examples/data/Pseudomonas_aeruginosa_R1.fasta.gz \
-    examples/data/Pseudomonas_aeruginosa_R2.fasta.gz \
-    examples/data/Saccharomyces_paradoxus_R1.fasta.gz \
-    examples/data/Saccharomyces_paradoxus_R2.fasta.gz \
-    --output_dir example \
-    --emb_out --max_reads 1000
-```
-> **Windows**: `bbert infer examples/data/Pseudomonas_aeruginosa_R1.fasta.gz examples/data/Pseudomonas_aeruginosa_R2.fasta.gz examples/data/Saccharomyces_paradoxus_R1.fasta.gz examples/data/Saccharomyces_paradoxus_R2.fasta.gz --output_dir example --emb_out --max_reads 1000`
->
-> **Note**: `--emb_out` requires `--max_reads` to prevent accidentally creating huge files.
-
-### Arguments
-- `files`: List of input file paths to process (required, can be relative or absolute paths)
-- `--output_dir`: Directory to save output Parquet files (required)
-- `--batch_size`: Batch size for processing (default: 1024)
-- `--emb_out`: Include sequence embeddings in output (optional, warning: slow and large files, **requires --max_reads**)
-- `--max_reads`: Maximum number of reads to process (optional, default: process all reads, **required when using --emb_out**)
-
 ## 3. Output Format
 
 The inference script outputs results to a Parquet file containing:
@@ -482,12 +383,16 @@ BBERT inference produces Parquet files with classification scores. Depending on 
 For single-end sequencing data, convert Parquet to TSV format:
 
 ```bash
+# First generate the parquet file if needed
+bbert infer examples/data/example.fasta --output-dir results
+
+# Then convert to TSV
 python examples/utilities/convert_scores_to_tsv.py \
-    --input example_scores_len.parquet \
-    --output_dir example \
+    --input results/example_scores_len.parquet \
+    --output_dir results \
     --output_prefix example
 ```
-> **Windows**: `python examples/utilities/convert_scores_to_tsv.py --input example_scores_len.parquet --output_dir example --output_prefix example`
+> **Windows**: `python examples/utilities/convert_scores_to_tsv.py --input results/example_scores_len.parquet --output_dir results --output_prefix example`
 
 **Output:**
 - `example_good_long_scores.tsv.gz` - Reads ≥100bp with scores
@@ -495,29 +400,24 @@ python examples/utilities/convert_scores_to_tsv.py \
 
 ### Paired-End Data Processing
 
-For paired-end sequencing data (R1/R2 files), merge scores from both reads using the files from our usage examples:
+For paired-end sequencing data (R1/R2 files), first generate scores, then merge them:
 
 ```bash
-# Merge P. aeruginosa R1/R2 scores
-python examples/utilities/merge_paired_scores.py \
-    --r1 examples/data/Pseudomonas_aeruginosa_R1_scores_len_emb.parquet \
-    --r2 examples/data/Pseudomonas_aeruginosa_R2_scores_len_emb.parquet \
-    --output_dir example \
-    --output_prefix Pseudomonas_aeruginosa
+# Step 1: Generate scores for both R1 and R2 files
+bbert infer \
+    examples/data/Pseudomonas_aeruginosa_R1.fasta.gz \
+    examples/data/Pseudomonas_aeruginosa_R2.fasta.gz \
+    --output-dir results
 
-# Merge S. paradoxus R1/R2 scores  
+# Step 2: Merge the paired-end scores
 python examples/utilities/merge_paired_scores.py \
-    --r1 examples/data/Saccharomyces_paradoxus_R1_scores_len_emb.parquet \
-    --r2 examples/data/Saccharomyces_paradoxus_R2_scores_len_emb.parquet \
-    --output_dir example \
-    --output_prefix Saccharomyces_paradoxus
+    --r1 results/Pseudomonas_aeruginosa_R1_scores_len.parquet \
+    --r2 results/Pseudomonas_aeruginosa_R2_scores_len.parquet \
+    --output_dir results \
+    --output_prefix Pseudomonas_aeruginosa
 ```
 
-> **Windows**:
-> ```cmd
-> python examples/utilities/merge_paired_scores.py --r1 examples/data/Pseudomonas_aeruginosa_R1_scores_len_emb.parquet --r2 examples/data/Pseudomonas_aeruginosa_R2_scores_len_emb.parquet --output_dir example --output_prefix Pseudomonas_aeruginosa
-> python examples/utilities/merge_paired_scores.py --r1 examples/data/Saccharomyces_paradoxus_R1_scores_len_emb.parquet --r2 examples/data/Saccharomyces_paradoxus_R2_scores_len_emb.parquet --output_dir example --output_prefix Saccharomyces_paradoxus
-> ```
+> **Windows**: Same commands work on Windows
 
 **Output:**
 - `Pseudomonas_aeruginosa_good_long_scores.tsv.gz` - Combined scores for read pairs ≥100bp
@@ -550,17 +450,24 @@ Contains metadata for reads/pairs excluded due to length filtering.
 To extract amino acid sequences from reads predicted as coding sequences, use the coding amino acid extraction script. This script separates bacterial and non-bacterial coding sequences into two output files:
 
 ```bash
-# Basic usage - extract coding sequences as amino acids
-python source/extract_coding_AA.py \
+# Step 1: Generate BBERT scores (if not already done)
+bbert infer examples/data/example.fasta --output-dir results
+
+# Step 2: Extract coding sequences as amino acids (basic usage)
+python examples/utilities/extract_coding_AA.py \
     --input examples/data/example.fasta \
-    --parquet examples/data/example_scores_len.parquet \
+    --parquet results/example_scores_len.parquet \
     --out_bact bacterial_proteins.fasta \
     --out_nonbact nonbacterial_proteins.fasta
 
-# With custom probability thresholds
-python source/extract_coding_AA.py \
+# Example with custom probability thresholds:
+# Step 1: Generate scores for Pseudomonas reads
+bbert infer examples/data/Pseudomonas_aeruginosa_R1.fasta.gz --output-dir results
+
+# Step 2: Extract coding sequences with custom thresholds
+python examples/utilities/extract_coding_AA.py \
     --input examples/data/Pseudomonas_aeruginosa_R1.fasta.gz \
-    --parquet examples/data/Pseudomonas_aeruginosa_R1_scores_len.parquet \
+    --parquet results/Pseudomonas_aeruginosa_R1_scores_len.parquet \
     --out_bact pseudomonas_bacterial_proteins.fasta \
     --out_nonbact pseudomonas_nonbacterial_proteins.fasta \
     --bacterial_threshold 0.8 \
@@ -569,8 +476,10 @@ python source/extract_coding_AA.py \
 
 > **Windows**:
 > ```cmd
-> python source/extract_coding_AA.py --input examples/data/example.fasta --parquet examples/data/example_scores_len.parquet --out_bact bacterial_proteins.fasta --out_nonbact nonbacterial_proteins.fasta
-> python source/extract_coding_AA.py --input examples/data/Pseudomonas_aeruginosa_R1.fasta.gz --parquet examples/data/Pseudomonas_aeruginosa_R1_scores_len.parquet --out_bact pseudomonas_bacterial_proteins.fasta --out_nonbact pseudomonas_nonbacterial_proteins.fasta --bacterial_threshold 0.8 --coding_threshold 0.7
+> bbert infer examples/data/example.fasta --output-dir results
+> python examples/utilities/extract_coding_AA.py --input examples/data/example.fasta --parquet results/example_scores_len.parquet --out_bact bacterial_proteins.fasta --out_nonbact nonbacterial_proteins.fasta
+> bbert infer examples/data/Pseudomonas_aeruginosa_R1.fasta.gz --output-dir results
+> python examples/utilities/extract_coding_AA.py --input examples/data/Pseudomonas_aeruginosa_R1.fasta.gz --parquet results/Pseudomonas_aeruginosa_R1_scores_len.parquet --out_bact pseudomonas_bacterial_proteins.fasta --out_nonbact pseudomonas_nonbacterial_proteins.fasta --bacterial_threshold 0.8 --coding_threshold 0.7
 > ```
 
 **What this script does:**
@@ -608,12 +517,12 @@ The visualization requires embeddings to be generated during inference using the
 
 ```bash
 # Generate embeddings for visualization (if not done already)
-python bbert.py \
+bbert infer \
     examples/data/Pseudomonas_aeruginosa_R1.fasta.gz \
     examples/data/Pseudomonas_aeruginosa_R2.fasta.gz \
     examples/data/Saccharomyces_paradoxus_R1.fasta.gz \
     examples/data/Saccharomyces_paradoxus_R2.fasta.gz \
-    --output_dir example --emb_out --max_reads 1000 --batch_size 512
+    --output-dir example --emb-out --max-reads 1000 --batch-size 512
 ```
 
 **⚠️ Important**:
@@ -626,23 +535,23 @@ Once embeddings are generated, create interactive visualizations:
 
 ```bash
 # Check that embedding files exist
-ls examples/data/*_scores_len_emb.parquet
+ls example/*_scores_len_emb.parquet
 
 # If no embedding files found, you'll see:
-# ls: examples/data/*_scores_len_emb.parquet: No such file or directory
+# ls: example/*_scores_len_emb.parquet: No such file or directory
 # Run the --emb_out command above first!
 
 # Basic usage with required parameters
-python source/visualize_embeddings.py \
-  --files "examples/data/Pseudomonas_aeruginosa_R1_scores_len_emb.parquet,examples/data/Saccharomyces_paradoxus_R1_scores_len_emb.parquet" \
+python examples/visualization/visualize_embeddings.py \
+  --files "example/Pseudomonas_aeruginosa_R1_scores_len_emb.parquet,example/Saccharomyces_paradoxus_R1_scores_len_emb.parquet" \
   --labels "P. aeruginosa,S. paradoxus" \
   --output_dir example \
   --output_name bacterial_vs_eukaryotic \
   --max_reads 500
 
 # Use PCA (faster alternative to t-SNE)
-python source/visualize_embeddings.py \
-  --files "examples/data/Pseudomonas_aeruginosa_R1_scores_len_emb.parquet,examples/data/Saccharomyces_paradoxus_R1_scores_len_emb.parquet" \
+python examples/visualization/visualize_embeddings.py \
+  --files "example/Pseudomonas_aeruginosa_R1_scores_len_emb.parquet,example/Saccharomyces_paradoxus_R1_scores_len_emb.parquet" \
   --labels "P. aeruginosa,S. paradoxus" \
   --output_dir example \
   --output_name bacterial_vs_eukaryotic_pca \
@@ -652,11 +561,11 @@ python source/visualize_embeddings.py \
 
 > **Windows**:
 > ```cmd
-> python source/visualize_embeddings.py --files "examples/data/Pseudomonas_aeruginosa_R1_scores_len_emb.parquet,examples/data/Saccharomyces_paradoxus_R1_scores_len_emb.parquet" --labels "P. aeruginosa,S. paradoxus" --output_dir example --output_name bacterial_vs_eukaryotic --max_reads 500
-> python source/visualize_embeddings.py --files "examples/data/Pseudomonas_aeruginosa_R1_scores_len_emb.parquet,examples/data/Saccharomyces_paradoxus_R1_scores_len_emb.parquet" --labels "P. aeruginosa,S. paradoxus" --output_dir example --output_name bacterial_vs_eukaryotic_pca --method pca --max_reads 500
+> python examples/visualization/visualize_embeddings.py --files "example/Pseudomonas_aeruginosa_R1_scores_len_emb.parquet,example/Saccharomyces_paradoxus_R1_scores_len_emb.parquet" --labels "P. aeruginosa,S. paradoxus" --output_dir example --output_name bacterial_vs_eukaryotic --max_reads 500
+> python examples/visualization/visualize_embeddings.py --files "example/Pseudomonas_aeruginosa_R1_scores_len_emb.parquet,example/Saccharomyces_paradoxus_R1_scores_len_emb.parquet" --labels "P. aeruginosa,S. paradoxus" --output_dir example --output_name bacterial_vs_eukaryotic_pca --method pca --max_reads 500
 > ```
 
-The t-SNE output will be in examples/data/bacterial_vs_eukaryotic.png and .pdf, and looks like this:
+The t-SNE output will be in example/bacterial_vs_eukaryotic.png and .pdf, and looks like this:
 ![Bacteria vs. Eukaryotic t-SNE](./examples/data/bacterial_vs_eukaryotic.png)
 
 ### Usage Requirements
@@ -703,8 +612,8 @@ The script creates 4-panel plots saved in both PNG and PDF formats that reveal:
 If embeddings are missing:
 ```bash
 # Error: No embedding parquet files found in example
-# Solution: Re-run BBERT with --emb_out and --max_reads flags
-python bbert.py examples/data/*.fasta.gz --output_dir example --emb_out --max_reads 1000
+# Solution: Re-run BBERT with --emb-out and --max-reads flags
+bbert infer examples/data/*.fasta.gz --output-dir example --emb-out --max-reads 1000
 ```
 
 ## 6. Genomic Accuracy Analysis
@@ -716,9 +625,9 @@ For comprehensive evaluation of BBERT's performance on real genomic data, use th
 ```bash
 mkdir -p tests
 # Analyze bacterial genome (P.aeruginosa example)
-python source/test_genomic_accuracy.py \
-    --fasta examples/data/GCF_000016525_P_aeruginosa.fasta \
-    --gtf examples/data/GCF_000016525_P_aeruginosa.gtf \
+python scripts/testing/test_genomic_accuracy.py \
+    --fasta examples/data/GCF_000016525_P_aeruginosa.fasta.gz \
+    --gtf examples/data/GCF_000016525_P_aeruginosa.gtf.gz \
     --is_bact true \
     --taxon "P.aeruginosa" \
     --reads_per_cds 1 \
@@ -726,18 +635,18 @@ python source/test_genomic_accuracy.py \
     --verbose
 
 # Analyze eukaryotic genome (S.cerevisiae example)
-python source/test_genomic_accuracy.py \
-    --fasta examples/data/GCF_000146045_S_cerevisiae.fasta \
-    --gtf examples/data/GCF_000146045_S_cerevisiae.gtf \
+python scripts/testing/test_genomic_accuracy.py \
+    --fasta examples/data/GCF_000146045_S_cerevisiae.fasta.gz \
+    --gtf examples/data/GCF_000146045_S_cerevisiae.gtf.gz \
     --is_bact false \
     --taxon "S.cerevisiae" \
     --output_dir tests \
     --reads_per_cds 1
 
 # Analyze archaeal genome (M.smithii example)
-python source/test_genomic_accuracy.py \
-    --fasta examples/data/GCF_000016525_M_smithii.fasta \
-    --gtf examples/data/GCF_000016525_M_smithii.gtf \
+python scripts/testing/test_genomic_accuracy.py \
+    --fasta examples/data/GCF_000016525_M_smithii.fasta.gz \
+    --gtf examples/data/GCF_000016525_M_smithii.gtf.gz \
     --is_bact true \
     --taxon "M.smithii" \
     --output_dir tests \
@@ -747,9 +656,9 @@ python source/test_genomic_accuracy.py \
 > **Windows**:
 > ```cmd
 > mkdir tests
-> python source/test_genomic_accuracy.py --fasta examples/data/GCF_000016525_P_aeruginosa.fasta --gtf examples/data/GCF_000016525_P_aeruginosa.gtf --is_bact true --taxon "P.aeruginosa" --reads_per_cds 1 --output_dir tests --verbose
-> python source/test_genomic_accuracy.py --fasta examples/data/GCF_000146045_S_cerevisiae.fasta --gtf examples/data/GCF_000146045_S_cerevisiae.gtf --is_bact false --taxon "S.cerevisiae" --output_dir tests --reads_per_cds 1
-> python source/test_genomic_accuracy.py --fasta examples/data/GCF_000016525_M_smithii.fasta --gtf examples/data/GCF_000016525_M_smithii.gtf --is_bact true --taxon "M.smithii" --output_dir tests --reads_per_cds 2
+> python scripts/testing/test_genomic_accuracy.py --fasta examples/data/GCF_000016525_P_aeruginosa.fasta.gz --gtf examples/data/GCF_000016525_P_aeruginosa.gtf.gz --is_bact true --taxon "P.aeruginosa" --reads_per_cds 1 --output_dir tests --verbose
+> python scripts/testing/test_genomic_accuracy.py --fasta examples/data/GCF_000146045_S_cerevisiae.fasta.gz --gtf examples/data/GCF_000146045_S_cerevisiae.gtf.gz --is_bact false --taxon "S.cerevisiae" --output_dir tests --reads_per_cds 1
+> python scripts/testing/test_genomic_accuracy.py --fasta examples/data/GCF_000016525_M_smithii.fasta.gz --gtf examples/data/GCF_000016525_M_smithii.gtf.gz --is_bact true --taxon "M.smithii" --output_dir tests --reads_per_cds 2
 > ```
 
 ### What This Analysis Does
@@ -935,5 +844,5 @@ If you encounter issues not covered here:
    python --version
    conda --version  # or mamba --version
    git --version
-   python bbert.py --check
+   bbert --version
    ```

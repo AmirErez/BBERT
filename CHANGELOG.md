@@ -88,6 +88,30 @@ All scripts now use `bbert` package imports:
 - **Path validation mocks**: Added proper mocking for file existence checks
 - **Import updates**: All tests updated to use new `bbert.*` imports and new paths
 
+### Fixed
+
+#### Paired-End Read Merging
+- **Fixed `merge_paired_scores.py`**: Correctly handles paired-end read IDs with `/1` and `/2` suffixes
+  - **Problem**: Script was merging R1 and R2 directly on `id` column, causing zero matches (R1 has `/1` suffix, R2 has `/2`)
+  - **Solution**: Strip `/1` and `/2` suffixes to create `pair_id` for matching, then merge on `pair_id`
+  - **Impact**: `merge_paired_scores.py` now successfully pairs 5000/5000 reads instead of 0/5000
+  - **Location**: `examples/utilities/merge_paired_scores.py` lines 80-102
+
+#### README Documentation Paths
+- **Fixed all outdated `source/` paths**: Updated all README examples to use new directory structure
+  - `source/extract_coding_AA.py` → `examples/utilities/extract_coding_AA.py`
+  - `source/visualize_embeddings.py` → `examples/visualization/visualize_embeddings.py`
+  - `source/test_genomic_accuracy.py` → `scripts/testing/test_genomic_accuracy.py`
+- **Fixed missing workflow steps**: Added `bbert infer` steps before post-processing examples
+  - `extract_coding_AA.py` examples now include score generation step
+  - Updated paths from `examples/data/` to `results/` for consistency
+- **Fixed embedding visualization paths**: Corrected parquet file paths to match `--output-dir example`
+  - Changed `examples/data/*_emb.parquet` → `example/*_emb.parquet` in visualization examples
+- **Fixed compressed file extensions**: Updated genomic accuracy examples to use `.gz` extensions
+  - Changed `.fasta` and `.gtf` → `.fasta.gz` and `.gtf.gz` (6 examples updated)
+  - All reference genome files are now correctly referenced as compressed files
+- **Impact**: All README examples now work correctly with complete workflows
+
 ### Migration Guide
 
 #### For End Users

@@ -76,22 +76,30 @@ def merge_paired_scores(r1_file, r2_file, min_length=100):
         logger.warning(f"Read count mismatch: R1={len(r1_scores)}, R2={len(r2_scores)}")
     
     logger.info(f"Read counts: R1={len(r1_scores)}, R2={len(r2_scores)}")
-    
+
+    # Strip /1 and /2 suffixes from read IDs for proper pairing
+    r1_scores['pair_id'] = r1_scores['id'].str.replace(r'/[12]$', '', regex=True)
+    r2_scores['pair_id'] = r2_scores['id'].str.replace(r'/[12]$', '', regex=True)
+
     # Rename columns to distinguish R1/R2
     r1_scores = r1_scores.rename(columns={
         'loss': 'R1_loss',
-        'len': 'R1_len', 
+        'len': 'R1_len',
         'bact_prob': 'R1_bact_prob'
     })
-    
+
     r2_scores = r2_scores.rename(columns={
         'loss': 'R2_loss',
         'len': 'R2_len',
-        'bact_prob': 'R2_bact_prob'  
+        'bact_prob': 'R2_bact_prob'
     })
-    
-    # Merge on read ID
-    merged = r1_scores.merge(r2_scores, on='id', how='inner')
+
+    # Merge on pair_id (stripped of /1 or /2 suffix)
+    merged = r1_scores.merge(r2_scores, on='pair_id', how='inner', suffixes=('_r1', '_r2'))
+
+    # Use R1 id for the final output (or could use pair_id)
+    merged['id'] = merged['id_r1']
+    merged = merged.drop(columns=['id_r1', 'id_r2', 'pair_id'])
     logger.info(f"Merged dataset: {len(merged)} read pairs")
     
     # Apply length filtering and score combination logic
