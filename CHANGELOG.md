@@ -115,10 +115,12 @@ All scripts now use `bbert` package imports:
 #### GitHub Actions CI/CD Workflow
 - **Fixed `.github/workflows/test.yml`**: Updated workflow for v0.2.0 package structure
   - Added `pip install -e .` step to install package in editable mode
+  - **Added `bbert download` step**: Downloads models from HuggingFace Hub before tests
   - Replaced `python bbert.py --check` → `bbert --version` for system diagnostics
   - Updated test coverage source from `--source=source` → `--source=bbert`
   - Replaced `python bbert.py` → `bbert infer` in end-to-end example
   - Added graceful handling for missing unit tests (tests/ directory in .gitignore)
+  - Added model directory check to diagnostics
 - **Impact**: GitHub Actions workflow now runs successfully with v0.2.0 package structure
 
 #### Critical .gitignore Fixes
@@ -139,6 +141,18 @@ All scripts now use `bbert` package imports:
     - `bbert/utils/`: inference.py, common.py
     - `bbert/data/`: __init__.py
 - **Impact**: Package can now be installed from git repository, CI/CD will work
+
+#### Legacy Command References in Scripts
+- **Fixed outdated help text in utility scripts**: Updated all script examples to use new directory structure
+  - **Files updated**:
+    - `scripts/testing/test_genomic_accuracy.py`: Changed `python source/test_genomic_accuracy2.py` → `python scripts/testing/test_genomic_accuracy.py`
+    - `examples/utilities/extract_coding_AA.py`: Changed `python source/extract_coding_AA.py` → `python examples/utilities/extract_coding_AA.py`
+    - `scripts/testing/generate_annotated_reads.py`: Changed `python source/generate_annotated_reads.py` → `python scripts/testing/generate_annotated_reads.py`
+  - **Impact**: All `--help` outputs now show correct command paths
+- **Fixed error messages in `bbert/utils/inference.py`**: Updated 5 locations with old download command references
+  - Changed all references from `python source/download_models.py` → `bbert download`
+  - **Locations**: Lines 104, 114, 136, 174, 203
+  - **Impact**: Error messages now guide users to correct CLI command
 
 ### Migration Guide
 

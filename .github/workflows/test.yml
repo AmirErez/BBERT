@@ -32,6 +32,10 @@ jobs:
         shell: bash -l {0}
         run: pip install -e .
 
+      - name: Download BBERT models
+        shell: bash -l {0}
+        run: bbert download
+
       - name: System diagnostics
         shell: bash -l {0}
         run: |
@@ -41,6 +45,8 @@ jobs:
           python --version
           echo "Package location:"
           python -c "import bbert; print(bbert.__file__)"
+          echo "Models downloaded:"
+          ls -lh models/ 2>/dev/null || echo "No models directory found"
 
       - name: Install coverage tools
         shell: bash -l {0}

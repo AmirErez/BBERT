@@ -402,13 +402,13 @@ This version uses generate_annotated_reads.py for cleaner data generation.
 
 EXAMPLES:
   # Bacterial genome test
-  python source/test_genomic_accuracy2.py --fasta genome.fasta --gff annotations.gff --is_bact true --taxon "E.coli"
+  python scripts/testing/test_genomic_accuracy.py --fasta genome.fasta --gff annotations.gff --is_bact true --taxon "E.coli"
 
   # Eukaryotic genome test
-  python source/test_genomic_accuracy2.py --fasta genome.fasta --gtf annotations.gtf --is_bact false --taxon "S.cerevisiae"
+  python scripts/testing/test_genomic_accuracy.py --fasta genome.fasta --gtf annotations.gtf --is_bact false --taxon "S.cerevisiae"
 
   # Using provided test files
-  python source/test_genomic_accuracy2.py --fasta examples/data/GCF_000146045.fasta --gff examples/data/GCF_000146045.gff --is_bact false --taxon "S.cerevisiae"
+  python scripts/testing/test_genomic_accuracy.py --fasta examples/data/GCF_000146045.fasta --gff examples/data/GCF_000146045.gff --is_bact false --taxon "S.cerevisiae"
 
 OUTPUT:
   Detailed results followed by tab-separated summary line starting with "SUMMARY_STATS"

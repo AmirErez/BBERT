@@ -101,7 +101,7 @@ def load_bbert_model(
     if not os.path.exists(model_path):
         raise FileNotFoundError(
             f"BBERT model not found at: {model_path}\n"
-            "Run 'python source/download_models.py' to download models from Hugging Face."
+            "Run 'bbert download' to download models from Hugging Face."
         )
 
     # Check for required model files
@@ -111,7 +111,7 @@ def load_bbert_model(
         raise FileNotFoundError(
             f"Missing required BBERT model files: {missing_files}\n"
             f"Model directory: {model_path}\n"
-            "Run 'python source/download_models.py' to download models from Hugging Face."
+            "Run 'bbert download' to download models from Hugging Face."
         )
 
     try:
@@ -133,7 +133,7 @@ def load_bbert_model(
         raise RuntimeError(
             f"Failed to load BBERT model from {model_path}: {str(e)}\n"
             "This might be a corrupted model file. Try re-downloading with:\n"
-            "python source/download_models.py --force"
+            "bbert download"
         ) from e
 
 
@@ -171,7 +171,7 @@ def load_classifier(
     if not os.path.exists(model_path):
         raise FileNotFoundError(
             f"{model_name} checkpoint not found at: {model_path}\n"
-            "Run 'python source/download_models.py' to download models from Hugging Face."
+            "Run 'bbert download' to download models from Hugging Face."
         )
 
     try:
@@ -200,5 +200,5 @@ def load_classifier(
         raise RuntimeError(
             f"Failed to load {model_name} from {model_path}: {str(e)}\n"
             "This might be a corrupted checkpoint file. Try re-downloading with:\n"
-            "python source/download_models.py --force"
+            "bbert download"
         ) from e

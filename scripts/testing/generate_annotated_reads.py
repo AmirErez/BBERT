@@ -421,13 +421,13 @@ def parse_arguments():
         epilog="""
 EXAMPLES:
   # Generate reads from bacterial genome
-  python source/generate_annotated_reads.py --fasta genome.fasta --gff annotations.gff --is_bact true --output_prefix bacterial_reads
+  python scripts/testing/generate_annotated_reads.py --fasta genome.fasta --gff annotations.gff --is_bact true --output_prefix bacterial_reads
 
   # Generate reads from eukaryotic genome
-  python source/generate_annotated_reads.py --fasta genome.fasta --gtf annotations.gtf --is_bact false --output_prefix eukaryotic_reads
+  python scripts/testing/generate_annotated_reads.py --fasta genome.fasta --gtf annotations.gtf --is_bact false --output_prefix eukaryotic_reads
 
   # Custom read counts
-  python source/generate_annotated_reads.py --fasta genome.fasta --gff annotations.gff --is_bact true --reads_per_cds 10 --noncoding_reads 5000 --output_prefix custom_reads
+  python scripts/testing/generate_annotated_reads.py --fasta genome.fasta --gff annotations.gff --is_bact true --reads_per_cds 10 --noncoding_reads 5000 --output_prefix custom_reads
 
 OUTPUT FILES:
   - {prefix}_reads.fasta: FASTA file with annotated headers

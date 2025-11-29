@@ -259,10 +259,10 @@ def main():
         epilog="""
 EXAMPLES:
   # Basic usage
-  python source/extract_coding_AA.py --input examples/data/sample.fasta --parquet results/sample_scores_len.parquet --out_bact bacterial_proteins.fasta --out_nonbact nonbacterial_proteins.fasta
-  
+  python examples/utilities/extract_coding_AA.py --input examples/data/sample.fasta --parquet results/sample_scores_len.parquet --out_bact bacterial_proteins.fasta --out_nonbact nonbacterial_proteins.fasta
+
   # Custom thresholds
-  python source/extract_coding_AA.py --input data.fastq.gz --parquet results/data_scores_len.parquet --out_bact bact_proteins.fasta --out_nonbact nonbact_proteins.fasta --bacterial_threshold 0.8 --coding_threshold 0.7
+  python examples/utilities/extract_coding_AA.py --input data.fastq.gz --parquet results/data_scores_len.parquet --out_bact bact_proteins.fasta --out_nonbact nonbact_proteins.fasta --bacterial_threshold 0.8 --coding_threshold 0.7
 
 OUTPUT FORMAT:
   Two FASTA files with amino acid sequences. Headers include:
