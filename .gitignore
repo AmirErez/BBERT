@@ -1,9 +1,8 @@
-bbert/
-models/
+/models/
 .idea/
 Graveyard/
-tests/
-results/
+/tests/
+/results/
 .hf_download_temp/
 
 # Generated output files (not package data)

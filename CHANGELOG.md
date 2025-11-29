@@ -121,6 +121,25 @@ All scripts now use `bbert` package imports:
   - Added graceful handling for missing unit tests (tests/ directory in .gitignore)
 - **Impact**: GitHub Actions workflow now runs successfully with v0.2.0 package structure
 
+#### Critical .gitignore Fixes
+- **Removed `bbert/` from .gitignore**: The package directory was being ignored by git
+  - **Problem 1**: Line 1 of .gitignore was `bbert/`, preventing the entire package from being tracked
+  - **Impact**: Package code wasn't in the repository, causing `pip install -e .` to fail in CI/CD
+  - **Problem 2**: Pattern `models/` was also matching `bbert/models/`, ignoring model code files
+  - **Solution**:
+    - Removed `bbert/` from .gitignore
+    - Changed `models/` → `/models/` to only ignore root-level models directory
+    - Changed `tests/` → `/tests/` and `results/` → `/results/` for consistency
+    - Added all 20 package files to git: CLI, core, models, utils, data modules
+  - **Files added**:
+    - `bbert/__init__.py`, `__main__.py`, `_version.py`, `py.typed`
+    - `bbert/cli/`: main.py, commands/download.py, commands/infer.py
+    - `bbert/core/`: config.py, dataset.py, collator.py, utils.py
+    - `bbert/models/`: classifier.py
+    - `bbert/utils/`: inference.py, common.py
+    - `bbert/data/`: __init__.py
+- **Impact**: Package can now be installed from git repository, CI/CD will work
+
 ### Migration Guide
 
 #### For End Users
