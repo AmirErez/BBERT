@@ -155,16 +155,28 @@ conda env create -f BBERT_env_mac.yml
 conda activate BBERT_mac
 ```
 
-#### For Windows 
+#### For Windows
 Note that the windows version is the least well supported, we include it here for user convenience.
 BBERT is meant to run on linux machines and mac is close enough for the compatibility to be easy.
 In Windows, path separators have '\' instead of '/', and so will all need manual fixing to work.
 
+**📖 For detailed Windows GPU setup troubleshooting, see [WINDOWS_GPU_SETUP.md](WINDOWS_GPU_SETUP.md)**
+
 ##### Windows with NVIDIA GPU:
 ```bash
+# Step 1: Create environment (without PyTorch)
 conda env create -f BBERT_env_windows.yml
 conda activate BBERT_windows
+
+# Step 2: Install PyTorch with CUDA support using pip
+# This ensures GPU is properly activated on Windows
+pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124
+
+# Step 3: Verify GPU is detected
+python -c "import torch; print(f'CUDA available: {torch.cuda.is_available()}')"
 ```
+
+**Important**: The two-step installation is necessary because conda on Windows often installs CPU-only PyTorch even when GPU packages are specified. Using pip with the explicit CUDA index URL ensures proper GPU support.
 
 ##### Windows CPU-only:
 ```bash
@@ -760,10 +772,31 @@ conda activate BBERT_mac  # or your environment name
 pip install tokenizers==0.13.3
 ```
 
-#### Issue: "CUDA not available" on systems with GPU
-**Solutions:**
+#### Issue: "CUDA not available" or GPU not detected on Windows with NVIDIA GPU
+**Problem:** Windows conda installations often default to CPU-only PyTorch even when GPU packages are specified in the environment file.
+
+**Solution:** Reinstall PyTorch with explicit CUDA support using pip:
+```bash
+# Activate your BBERT environment
+conda activate BBERT_windows
+
+# Uninstall existing PyTorch (if installed)
+pip uninstall torch torchvision torchaudio -y
+
+# Reinstall with CUDA 12.4 support
+pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124
+
+# Verify GPU is now detected
+python -c "import torch; print(f'CUDA available: {torch.cuda.is_available()}'); print(f'GPU name: {torch.cuda.get_device_name(0) if torch.cuda.is_available() else \"N/A\"}')"
+```
+
+**Why this happens:**
+- Conda's channel priority on Windows can cause package conflicts
+- The `pytorch-cuda` package may not properly link to CUDA libraries on Windows
+- Using pip with PyTorch's official wheel repository (`--index-url`) guarantees the CUDA version
+
+**For other systems:**
 - Verify CUDA installation: `nvidia-smi`
-- Reinstall PyTorch with CUDA support
 - For Mac: The model will automatically use MPS (Metal Performance Shaders)
 
 #### Issue: Windows environment creation fails with Linux-specific packages

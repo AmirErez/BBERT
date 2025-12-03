@@ -1,16 +1,10 @@
 name: BBERT_windows
 channels:
-  - pytorch
-  - nvidia
   - conda-forge
   - bioconda
   - defaults
 dependencies:
   - python=3.10
-  - pytorch
-  - torchvision
-  - torchaudio
-  - pytorch-cuda=12.4  # For CUDA support - remove if no NVIDIA GPU
   - transformers=4.30.2
   - biopython
   - pandas
@@ -29,6 +23,9 @@ dependencies:
   - git  # For Git LFS
   - pip
   - pip:
+      # NOTE: PyTorch MUST be installed separately after environment creation
+      # See README section "For Windows" for post-installation steps
+      # This ensures CUDA support is properly configured on Windows
       - psutil
       - torchinfo
       - accelerate
