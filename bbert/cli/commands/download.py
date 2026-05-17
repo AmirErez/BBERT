@@ -188,20 +188,26 @@ def download_all_models(bbert_root: Path, force: bool = False, repo_id: str = No
         print("=" * 60)
         return True
 
-    # Download entire repository to temp location
+    # Build the minimal set of HF patterns needed
+    allow_patterns = []
+    for _, config in models_to_download:
+        if config["is_folder"]:
+            allow_patterns.append(f"{config['hf_path']}/*")
+        else:
+            allow_patterns.append(config["hf_path"])
+
     print(f"Downloading models from Hugging Face Hub...")
     print()
 
     try:
-        # Download to a temp directory
+        # Download only the required files to a temp directory
         temp_dir = bbert_root / ".hf_download_temp"
         temp_dir.mkdir(exist_ok=True)
 
-        # Download the entire repo
-        cache_dir = snapshot_download(
+        snapshot_download(
             repo_id=repo_id,
             local_dir=temp_dir,
-            local_dir_use_symlinks=False,
+            allow_patterns=allow_patterns,
         )
 
         print()
