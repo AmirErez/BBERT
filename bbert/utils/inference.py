@@ -104,12 +104,20 @@ def load_bbert_model(
             "Run 'bbert download' to download models from Hugging Face."
         )
 
-    # Check for required model files
-    required_files = ['pytorch_model.bin', 'config.json']
-    missing_files = [f for f in required_files if not os.path.exists(os.path.join(model_path, f))]
-    if missing_files:
+    # Check for required model files (safetensors or legacy pytorch_model.bin)
+    has_weights = (
+        os.path.exists(os.path.join(model_path, 'model.safetensors')) or
+        os.path.exists(os.path.join(model_path, 'pytorch_model.bin'))
+    )
+    has_config = os.path.exists(os.path.join(model_path, 'config.json'))
+    if not has_weights or not has_config:
+        missing = []
+        if not has_weights:
+            missing.append('model.safetensors (or pytorch_model.bin)')
+        if not has_config:
+            missing.append('config.json')
         raise FileNotFoundError(
-            f"Missing required BBERT model files: {missing_files}\n"
+            f"Missing required BBERT model files: {missing}\n"
             f"Model directory: {model_path}\n"
             "Run 'bbert download' to download models from Hugging Face."
         )

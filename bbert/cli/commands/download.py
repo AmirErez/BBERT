@@ -15,29 +15,89 @@ HF_REPO_ID = "AmirErez/BBERT-models"
 
 # Model configurations - maps HF paths to local paths
 MODELS = {
+    "bbert_384H": {
+        "hf_path": "bbert_384H_epoch200",
+        "local_path": "models/diverse_bact_6_384_6/bbert_epoch200",
+        "description": "BBERT 384H transformer model (epoch 200, unfrozen)",
+        "is_folder": True,
+        "is_default": True
+    },
+    "bacterial_classifier_384H": {
+        "hf_path": "bacterial_classifier_384H/best_model.pt",
+        "local_path": "models/classifiers/bacterial_384H/best_model.pt",
+        "description": "384H bacterial classification model",
+        "is_folder": False,
+        "is_default": True
+    },
+    "frame_classifier_384H": {
+        "hf_path": "frame_classifier_384H/best_model.pt",
+        "local_path": "models/classifiers/frame_384H/best_model.pt",
+        "description": "384H reading frame classification model",
+        "is_folder": False,
+        "is_default": True
+    },
+    "coding_classifier_384H": {
+        "hf_path": "coding_classifier_384H/best_model.pt",
+        "local_path": "models/classifiers/coding_384H/best_model.pt",
+        "description": "384H coding sequence classification model",
+        "is_folder": False,
+        "is_default": True
+    },
+    "bbert_768H": {
+        "hf_path": "bbert_768H_epoch100",
+        "local_path": "models/diverse_bact_12_768_6/bbert_epoch100",
+        "description": "BBERT 768H transformer model (epoch 100, freeze2)",
+        "is_folder": True,
+        "is_default": False
+    },
+    "bacterial_classifier_768H": {
+        "hf_path": "bacterial_classifier_768H/best_model.pt",
+        "local_path": "models/classifiers/bacterial_768H/best_model.pt",
+        "description": "768H bacterial classification model",
+        "is_folder": False,
+        "is_default": False
+    },
+    "frame_classifier_768H": {
+        "hf_path": "frame_classifier_768H/best_model.pt",
+        "local_path": "models/classifiers/frame_768H/best_model.pt",
+        "description": "768H reading frame classification model",
+        "is_folder": False,
+        "is_default": False
+    },
+    "coding_classifier_768H": {
+        "hf_path": "coding_classifier_768H/best_model.pt",
+        "local_path": "models/classifiers/coding_768H/best_model.pt",
+        "description": "768H coding sequence classification model",
+        "is_folder": False,
+        "is_default": False
+    },
     "bbert_main": {
         "hf_path": "bbert_checkpoint-32500",
         "local_path": "models/diverse_bact_12_768_6_20000/checkpoint-32500",
-        "description": "BBERT transformer model",
-        "is_folder": True
+        "description": "BBERT 768H transformer model (original, legacy)",
+        "is_folder": True,
+        "is_default": False
     },
     "bacterial_classifier": {
         "hf_path": "bacterial_classifier/epoch_80.pt",
         "local_path": "models/classifiers/bacterial/models/emb_class_model_768H_3906K_80e/epoch_80.pt",
-        "description": "Bacterial classification model",
-        "is_folder": False
+        "description": "768H bacterial classification model (original, legacy)",
+        "is_folder": False,
+        "is_default": False
     },
     "frame_classifier": {
         "hf_path": "frame_classifier/classifier_model_2000K_37e.pth",
         "local_path": "models/classifiers/frame/models/classifier_model_2000K_37e.pth",
-        "description": "Reading frame classification model",
-        "is_folder": False
+        "description": "768H reading frame classification model (original, legacy)",
+        "is_folder": False,
+        "is_default": False
     },
     "coding_classifier": {
         "hf_path": "coding_classifier/epoch_46.pt",
         "local_path": "models/classifiers/coding/models/emb_coding_model_768_3906K_50e/epoch_46.pt",
-        "description": "Coding sequence classification model",
-        "is_folder": False
+        "description": "768H coding sequence classification model (original, legacy)",
+        "is_folder": False,
+        "is_default": False
     }
 }
 
@@ -48,6 +108,11 @@ def add_arguments(parser):
         "--force",
         action="store_true",
         help="Force re-download even if files exist"
+    )
+    parser.add_argument(
+        "--legacy",
+        action="store_true",
+        help="Also download legacy 768H models"
     )
     parser.add_argument(
         "--repo",
@@ -69,9 +134,10 @@ def check_model_exists(local_path: Path) -> bool:
             return False
         return True
     elif local_path.is_dir():
-        model_file = local_path / "pytorch_model.bin"
-        if model_file.exists() and not is_lfs_pointer(model_file):
-            return True
+        for model_file_name in ("model.safetensors", "pytorch_model.bin"):
+            model_file = local_path / model_file_name
+            if model_file.exists() and not is_lfs_pointer(model_file):
+                return True
     return False
 
 
@@ -91,7 +157,7 @@ def is_lfs_pointer(file_path: Path) -> bool:
     return False
 
 
-def download_all_models(bbert_root: Path, force: bool = False, repo_id: str = None):
+def download_all_models(bbert_root: Path, force: bool = False, repo_id: str = None, include_legacy: bool = False):
     """Download all required BBERT models."""
     if repo_id is None:
         repo_id = HF_REPO_ID
@@ -106,6 +172,8 @@ def download_all_models(bbert_root: Path, force: bool = False, repo_id: str = No
     # Check what's missing
     models_to_download = []
     for model_key, config in MODELS.items():
+        if not config.get("is_default", True) and not include_legacy:
+            continue
         local_path = bbert_root / config["local_path"]
         if force or not check_model_exists(local_path):
             models_to_download.append((model_key, config))
@@ -214,7 +282,7 @@ def main(args):
     bbert_root.mkdir(parents=True, exist_ok=True)
 
     try:
-        success = download_all_models(bbert_root, force=args.force, repo_id=args.repo)
+        success = download_all_models(bbert_root, force=args.force, repo_id=args.repo, include_legacy=args.legacy)
         sys.exit(0 if success else 1)
     except KeyboardInterrupt:
         print("\n\nDownload interrupted by user.")

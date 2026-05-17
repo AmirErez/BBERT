@@ -39,17 +39,38 @@ LOG_INTERVAL = 100
 DEFAULT_BBERT_MODEL_PATH_768 = "models/diverse_bact_12_768_6_20000/checkpoint-32500"
 """Default path for 768-dimensional BBERT model"""
 
-DEFAULT_BBERT_MODEL_PATH_384 = "models/diverse_bact_3_384_6_50000Ks/checkpoint-7000"
+DEFAULT_BBERT_MODEL_PATH_384 = "models/diverse_bact_6_384_6/bbert_epoch200"
 """Default path for 384-dimensional BBERT model"""
 
 DEFAULT_BACTERIAL_CLASSIFIER_PATH = "models/classifiers/bacterial/models/emb_class_model_768H_3906K_80e/epoch_80.pt"
-"""Default path for bacterial classifier"""
+"""Default path for 768H bacterial classifier"""
 
 DEFAULT_FRAME_CLASSIFIER_PATH = "models/classifiers/frame/models/classifier_model_2000K_37e.pth"
-"""Default path for reading frame classifier"""
+"""Default path for 768H reading frame classifier"""
 
 DEFAULT_CODING_CLASSIFIER_PATH = "models/classifiers/coding/models/emb_coding_model_768_3906K_50e/epoch_46.pt"
-"""Default path for coding sequence classifier"""
+"""Default path for 768H coding sequence classifier"""
+
+DEFAULT_BACTERIAL_CLASSIFIER_PATH_384 = "models/classifiers/bacterial_384H/best_model.pt"
+"""Default path for 384H bacterial classifier"""
+
+DEFAULT_FRAME_CLASSIFIER_PATH_384 = "models/classifiers/frame_384H/best_model.pt"
+"""Default path for 384H reading frame classifier"""
+
+DEFAULT_CODING_CLASSIFIER_PATH_384 = "models/classifiers/coding_384H/best_model.pt"
+"""Default path for 384H coding sequence classifier"""
+
+DEFAULT_BBERT_MODEL_PATH_768_NEW = "models/diverse_bact_12_768_6/bbert_epoch100"
+"""Path for newer 768H BBERT model (epoch 100, freeze2)"""
+
+DEFAULT_BACTERIAL_CLASSIFIER_PATH_768 = "models/classifiers/bacterial_768H/best_model.pt"
+"""Path for newer 768H bacterial classifier"""
+
+DEFAULT_FRAME_CLASSIFIER_PATH_768 = "models/classifiers/frame_768H/best_model.pt"
+"""Path for newer 768H reading frame classifier"""
+
+DEFAULT_CODING_CLASSIFIER_PATH_768 = "models/classifiers/coding_768H/best_model.pt"
+"""Path for newer 768H coding sequence classifier"""
 
 # Training Constants
 DEFAULT_LEARNING_RATE = 1e-4

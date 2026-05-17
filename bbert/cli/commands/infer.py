@@ -38,6 +38,9 @@ from bbert.core.config import (
     DEFAULT_BACTERIAL_CLASSIFIER_PATH,
     DEFAULT_FRAME_CLASSIFIER_PATH,
     DEFAULT_CODING_CLASSIFIER_PATH,
+    DEFAULT_BACTERIAL_CLASSIFIER_PATH_384,
+    DEFAULT_FRAME_CLASSIFIER_PATH_384,
+    DEFAULT_CODING_CLASSIFIER_PATH_384,
     DEFAULT_PREFETCH_FACTOR,
     DEFAULT_NUM_WORKERS
 )
@@ -81,8 +84,8 @@ def add_arguments(parser):
         "--hidden-size",
         type=int,
         choices=[384, 768],
-        default=768,
-        help="Hidden size of BBERT model to use (default: 768)"
+        default=384,
+        help="Hidden size of BBERT model to use (default: 384)"
     )
 
 
@@ -90,8 +93,10 @@ def get_model_paths(hidden_size, bbert_dir):
     """Get model paths based on hidden size and BBERT directory."""
     if hidden_size == HIDDEN_SIZE_384:
         bbert_model_path = os.path.join(bbert_dir, DEFAULT_BBERT_MODEL_PATH_384)
-        # 384 model doesn't have classifiers yet
-        raise NotImplementedError("384-dimensional model classifiers not yet implemented")
+        bact_class_model_path = os.path.join(bbert_dir, DEFAULT_BACTERIAL_CLASSIFIER_PATH_384)
+        frame_class_model_path = os.path.join(bbert_dir, DEFAULT_FRAME_CLASSIFIER_PATH_384)
+        class_model_path = os.path.join(bbert_dir, DEFAULT_CODING_CLASSIFIER_PATH_384)
+        return bbert_model_path, bact_class_model_path, frame_class_model_path, class_model_path
     elif hidden_size == HIDDEN_SIZE_768:
         bbert_model_path = os.path.join(bbert_dir, DEFAULT_BBERT_MODEL_PATH_768)
         bact_class_model_path = os.path.join(bbert_dir, DEFAULT_BACTERIAL_CLASSIFIER_PATH)
