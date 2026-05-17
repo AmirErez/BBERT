@@ -184,7 +184,7 @@ def load_classifier(
 
     try:
         classifier = BertClassifier(hidden_size, num_classes)
-        checkpoint = torch.load(model_path, weights_only=True, map_location=device)
+        checkpoint = torch.load(model_path, weights_only=False, map_location=device)
 
         # Validate checkpoint structure
         if 'model_state_dict' not in checkpoint:
