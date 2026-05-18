@@ -677,25 +677,25 @@ Total test reads: 3868
   Non-coding reads: 315
 
 SEQUENCE TYPE CLASSIFICATION:
-  Coding prediction:     3225/3553 (90.8%)
-  Non-coding prediction: 290/315 (92.1%)
-  Overall coding/non-coding: 3515/3868 (90.9%)
+  Coding prediction:     3213/3553 (90.4%)
+  Non-coding prediction: 292/315 (92.7%)
+  Overall coding/non-coding: 3505/3868 (90.6%)
 
 READING FRAME PREDICTION (coding sequences only):
-  Frame accuracy: 3438/3553 (96.8%)
+  Frame accuracy: 3457/3553 (97.3%)
 
 BACTERIAL CLASSIFICATION:
-  Bacterial prediction (overall): 3324/3868 (85.9%)
-    Coding sequences:     3281/3553 (92.3%)
-    Non-coding sequences: 43/315 (13.7%)
+  Bacterial prediction (overall): 3258/3868 (84.2%)
+    Coding sequences:     3176/3553 (89.4%)
+    Non-coding sequences: 82/315 (26.0%)
 
 PROBABILITY DISTRIBUTIONS:
-  Mean bacterial probability (all): 0.811
-  Mean bacterial probability (coding seqs): 0.859
-  Mean bacterial probability (non-coding seqs): 0.270
-  Mean coding probability (all): 0.777
-  Mean coding probability (coding seqs): 0.832
-  Mean coding probability (non-coding seqs): 0.155
+  Mean bacterial probability (all): 0.800
+  Mean bacterial probability (coding seqs): 0.841
+  Mean bacterial probability (non-coding seqs): 0.329
+  Mean coding probability (all): 0.763
+  Mean coding probability (coding seqs): 0.817
+  Mean coding probability (non-coding seqs): 0.153
 ```
 
 
