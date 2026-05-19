@@ -192,59 +192,79 @@ def create_visualization(df, result_2d, output_dir, output_name='bbert_visualiza
     fig, axes = plt.subplots(2, 2, figsize=(16, 12))
     fig.suptitle(f'{method} Visualization of BBERT Embeddings', fontsize=16, fontweight='bold')
     
-    # Dynamic color palettes
+    # Dynamic color palettes and marker styles
     unique_organisms = df['organism'].unique()
     unique_coding = df['coding_status'].unique()
-    
-    # Generate colors dynamically for organisms/samples
+
+    marker_list = ['o', '^', 's', 'D', 'v', 'p', '*', 'h', 'X', '<']
+
+    # Generate colors and markers dynamically for organisms/samples
     organism_colors = {}
+    organism_markers = {}
     colors_list = plt.cm.tab10(np.linspace(0, 1, len(unique_organisms)))
     for i, organism in enumerate(unique_organisms):
         organism_colors[organism] = colors_list[i]
-    
+        organism_markers[organism] = marker_list[i % len(marker_list)]
+
     coding_colors = {'Coding': '#2ca02c', 'Non-coding': '#d62728', 'Unknown': 'gray'}
-    
+
     # Plot 1: Color by sample/organism
     ax1 = axes[0, 0]
     for organism in unique_organisms:
         mask = df['organism'] == organism
-        ax1.scatter(df.loc[mask, 'dim_1'], df.loc[mask, 'dim_2'], 
-                   c=[organism_colors[organism]], label=organism, alpha=0.6, s=20)
+        ax1.scatter(df.loc[mask, 'dim_1'], df.loc[mask, 'dim_2'],
+                   c=[organism_colors[organism]], marker=organism_markers[organism],
+                   label=organism, alpha=0.6, s=20)
     ax1.set_title('Colored by Sample/Species')
     ax1.set_xlabel(f'{method} 1')
     ax1.set_ylabel(f'{method} 2')
     ax1.legend(bbox_to_anchor=(1.05, 1), loc='upper left', fontsize=8)
-    
-    # Plot 2: Color by coding status
+
+    # Plot 2: Color by coding status, marker by organism
     ax2 = axes[0, 1]
-    for coding in df['coding_status'].unique():
-        mask = df['coding_status'] == coding
-        ax2.scatter(df.loc[mask, 'dim_1'], df.loc[mask, 'dim_2'], 
-                   c=coding_colors.get(coding, 'gray'), label=coding, alpha=0.6, s=20)
+    legend_coding = {}
+    legend_organism = {}
+    for organism in unique_organisms:
+        for coding in df['coding_status'].unique():
+            mask = (df['organism'] == organism) & (df['coding_status'] == coding)
+            if mask.any():
+                sc = ax2.scatter(df.loc[mask, 'dim_1'], df.loc[mask, 'dim_2'],
+                                c=coding_colors.get(coding, 'gray'),
+                                marker=organism_markers[organism],
+                                alpha=0.6, s=20)
+                legend_coding[coding] = sc
+                legend_organism[organism] = sc
+    # Two-part legend: coding status (color) and organism (marker)
+    from matplotlib.lines import Line2D
+    coding_handles = [Line2D([0], [0], marker='o', color='w', markerfacecolor=coding_colors.get(c, 'gray'),
+                             markersize=7, label=c) for c in df['coding_status'].unique()]
+    organism_handles = [Line2D([0], [0], marker=organism_markers[org], color='w', markerfacecolor='gray',
+                               markersize=7, label=org) for org in unique_organisms]
+    ax2.legend(handles=coding_handles + organism_handles, fontsize=8)
     ax2.set_title('Colored by Coding Status')
     ax2.set_xlabel(f'{method} 1')
     ax2.set_ylabel(f'{method} 2')
-    ax2.legend()
-    
-    # Plot 3: Color by detailed category (organism + frame/non-coding)
+
+    # Plot 3: Color by detailed category (organism + frame/non-coding), marker by organism
     ax3 = axes[1, 0]
     categories = df['category'].unique()
-    colors = plt.cm.tab20(np.linspace(0, 1, len(categories)))  # More colors for more categories
+    colors = plt.cm.tab20(np.linspace(0, 1, len(categories)))
     for i, category in enumerate(categories):
         mask = df['category'] == category
-        ax3.scatter(df.loc[mask, 'dim_1'], df.loc[mask, 'dim_2'], 
-                   c=[colors[i]], label=category, alpha=0.6, s=20)
+        organism = df.loc[mask, 'organism'].iloc[0]
+        ax3.scatter(df.loc[mask, 'dim_1'], df.loc[mask, 'dim_2'],
+                   c=[colors[i]], marker=organism_markers[organism], label=category, alpha=0.6, s=20)
     ax3.set_title('Colored by Sample + Frame/Non-coding')
     ax3.set_xlabel(f'{method} 1')
     ax3.set_ylabel(f'{method} 2')
     ax3.legend(bbox_to_anchor=(1.05, 1), loc='upper left', fontsize=8)
-    
+
     # Plot 4: Sample distribution
     ax4 = axes[1, 1]
-    for sample in df['sample'].unique():
+    for i, sample in enumerate(df['sample'].unique()):
         mask = df['sample'] == sample
-        ax4.scatter(df.loc[mask, 'dim_1'], df.loc[mask, 'dim_2'], 
-                   label=sample, alpha=0.6, s=20)
+        ax4.scatter(df.loc[mask, 'dim_1'], df.loc[mask, 'dim_2'],
+                   marker=marker_list[i % len(marker_list)], label=sample, alpha=0.6, s=20)
     ax4.set_title('Colored by Sample')
     ax4.set_xlabel(f'{method} 1')
     ax4.set_ylabel(f'{method} 2')
