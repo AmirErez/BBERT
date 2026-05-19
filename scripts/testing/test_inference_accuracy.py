@@ -3,7 +3,7 @@
 Test BBERT inference accuracy using known ground truth sequences.
 
 Uses examples/data/example.fasta which contains:
-- First 5 sequences: E. coli (should be bacterial)
+- First 5 sequences: Bradyrhizobium diazoefficiens (should be bacterial)
 - Last 5 sequences: Saccharomyces cerevisiae (should be non-bacterial)
 """
 
@@ -81,25 +81,25 @@ class TestInferenceAccuracy(unittest.TestCase):
                                  msg=f"Frame probabilities should sum to ~1.0 for sequence {idx}")
     
     def test_ecoli_bacterial_classification(self):
-        """Test that E. coli sequences are classified as bacterial."""
-        ecoli_results = self.results[self.results['id'].str.contains('NC_000913')]
-        
-        self.assertEqual(len(ecoli_results), 5, "Should have 5 E. coli sequences")
-        
-        # All E. coli sequences should have high bacterial probability
-        ecoli_bacterial_probs = ecoli_results['bact_prob'].values
-        
-        print(f"E. coli bacterial probabilities: {ecoli_bacterial_probs}")
-        
-        # All E. coli sequences should be classified as bacterial (> 0.5)
-        bacterial_count = sum(ecoli_bacterial_probs > 0.5)
-        self.assertEqual(bacterial_count, 5, 
-                        f"All 5 E. coli sequences should be bacterial, got {bacterial_count}/5")
-        
+        """Test that Bradyrhizobium sequences are classified as bacterial."""
+        brady_results = self.results[self.results['id'].str.contains('NZ_CP011360')]
+
+        self.assertEqual(len(brady_results), 5, "Should have 5 Bradyrhizobium sequences")
+
+        # All Bradyrhizobium sequences should have high bacterial probability
+        brady_bacterial_probs = brady_results['bact_prob'].values
+
+        print(f"Bradyrhizobium bacterial probabilities: {brady_bacterial_probs}")
+
+        # All Bradyrhizobium sequences should be classified as bacterial (> 0.5)
+        bacterial_count = sum(brady_bacterial_probs > 0.5)
+        self.assertEqual(bacterial_count, 5,
+                        f"All 5 Bradyrhizobium sequences should be bacterial, got {bacterial_count}/5")
+
         # Test that mean probability is high
-        mean_prob = ecoli_bacterial_probs.mean()
-        self.assertGreater(mean_prob, 0.5, 
-                          f"Mean E. coli bacterial probability should be > 0.5, got {mean_prob:.3f}")
+        mean_prob = brady_bacterial_probs.mean()
+        self.assertGreater(mean_prob, 0.5,
+                          f"Mean Bradyrhizobium bacterial probability should be > 0.5, got {mean_prob:.3f}")
     
     def test_saccharomyces_non_bacterial_classification(self):
         """Test that Saccharomyces cerevisiae sequences are classified as non-bacterial."""
@@ -123,19 +123,19 @@ class TestInferenceAccuracy(unittest.TestCase):
                        f"Mean Saccharomyces cerevisiae bacterial probability should be < 0.5, got {mean_prob:.3f}")
     
     def test_classification_separation(self):
-        """Test that E. coli and Saccharomyces cerevisiae are clearly separated."""
-        ecoli_results = self.results[self.results['id'].str.contains('NC_000913')]
+        """Test that Bradyrhizobium and Saccharomyces cerevisiae are clearly separated."""
+        brady_results = self.results[self.results['id'].str.contains('NZ_CP011360')]
         saccharomyces_results = self.results[self.results['id'].str.contains('NC_001133')]
-        
-        ecoli_mean = ecoli_results['bact_prob'].mean()
+
+        brady_mean = brady_results['bact_prob'].mean()
         saccharomyces_mean = saccharomyces_results['bact_prob'].mean()
-        
-        # E. coli should have higher bacterial probability than Saccharomyces cerevisiae
-        self.assertGreater(ecoli_mean, saccharomyces_mean,
-                          f"E. coli mean ({ecoli_mean:.3f}) should be > Saccharomyces cerevisiae mean ({saccharomyces_mean:.3f})")
-        
-        # E. coli should be above 0.5 threshold, Saccharomyces should be below
-        self.assertGreater(ecoli_mean, 0.5, f"E. coli mean should be > 0.5, got {ecoli_mean:.3f}")
+
+        # Bradyrhizobium should have higher bacterial probability than Saccharomyces cerevisiae
+        self.assertGreater(brady_mean, saccharomyces_mean,
+                          f"Bradyrhizobium mean ({brady_mean:.3f}) should be > Saccharomyces cerevisiae mean ({saccharomyces_mean:.3f})")
+
+        # Bradyrhizobium should be above 0.5 threshold, Saccharomyces should be below
+        self.assertGreater(brady_mean, 0.5, f"Bradyrhizobium mean should be > 0.5, got {brady_mean:.3f}")
         self.assertLess(saccharomyces_mean, 0.5, f"Saccharomyces mean should be < 0.5, got {saccharomyces_mean:.3f}")
     
     def test_sequence_lengths(self):
@@ -165,16 +165,16 @@ class TestInferenceAccuracy(unittest.TestCase):
         print("="*60)
         
         for idx, row in self.results.iterrows():
-            organism = "E. coli" if "NC_000913" in row['id'] else "S. cerevisiae"
-            print(f"{row['id'][:20]:20} | {organism:12} | Bact: {row['bact_prob']:.3f} | "
+            organism = "Bradyrhizobium" if "NZ_CP011360" in row['id'] else "S. cerevisiae"
+            print(f"{row['id'][:20]:20} | {organism:14} | Bact: {row['bact_prob']:.3f} | "
                   f"Coding: {row['coding_prob']:.3f} | Loss: {row['loss']:.3f}")
-        
+
         print("\nSUMMARY STATISTICS:")
-        ecoli_mask = self.results['id'].str.contains('NC_000913')
+        brady_mask = self.results['id'].str.contains('NZ_CP011360')
         saccharomyces_mask = self.results['id'].str.contains('NC_001133')
 
-        print(f"E. coli bacterial prob:           {self.results[ecoli_mask]['bact_prob'].mean():.3f} +/- "
-              f"{self.results[ecoli_mask]['bact_prob'].std():.3f}")
+        print(f"Bradyrhizobium bacterial prob:    {self.results[brady_mask]['bact_prob'].mean():.3f} +/- "
+              f"{self.results[brady_mask]['bact_prob'].std():.3f}")
         print(f"Saccharomyces cerevisiae prob:    {self.results[saccharomyces_mask]['bact_prob'].mean():.3f} +/- "
               f"{self.results[saccharomyces_mask]['bact_prob'].std():.3f}")
 
