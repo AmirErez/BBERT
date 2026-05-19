@@ -548,10 +548,10 @@ python examples/visualization/visualize_embeddings.py \
 > ```
 
 The t-SNE output (the default perplexity is 30 but you may modify it according to the type and size of data) will be in examples/data/bacterial_vs_eukaryotic.png and .pdf, and looks like this:
-![Bacteria vs. Eukaryotic t-SNE](./examples/data/bacterial_vs_eukaryotic_PCA.png)
+![Bacteria vs. Eukaryotic t-SNE](./examples/data/bacterial_vs_eukaryotic.png)
 
-The PCA output will be in example/bacterial_vs_eukaryotic_PCA.png and .pdf, and looks like this:
-![Bacteria vs. Eukaryotic PCA](./examples/data/bacterial_vs_eukaryotic_PCA.png)
+The PCA output will be in examples/data/bacterial_vs_eukaryotic_pca.png and .pdf, and looks like this:
+![Bacteria vs. Eukaryotic PCA](./examples/data/bacterial_vs_eukaryotic_pca.png)
 
 ### Usage Requirements
 
