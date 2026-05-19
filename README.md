@@ -547,11 +547,11 @@ python examples/visualization/visualize_embeddings.py \
 > python examples/visualization/visualize_embeddings.py --files "example/Pseudomonas_aeruginosa_R1_scores_len_emb.parquet,example/Saccharomyces_paradoxus_R1_scores_len_emb.parquet" --labels "P. aeruginosa,S. paradoxus" --output_dir example --output_name bacterial_vs_eukaryotic_pca --method pca --max_reads 500
 > ```
 
-The t-SNE output (the default perplexity is 30 but you may modify it according to the type and size of data) will be in example/bacterial_vs_eukaryotic.png and .pdf, and looks like this:
-![Bacteria vs. Eukaryotic t-SNE](./examples/data/bacterial_vs_eukaryotic.png)
+The t-SNE output (the default perplexity is 30 but you may modify it according to the type and size of data) will be in examples/data/bacterial_vs_eukaryotic.png and .pdf, and looks like this:
+![Bacteria vs. Eukaryotic t-SNE](./examples/data/bacterial_vs_eukaryotic_PCA.png)
 
 The PCA output will be in example/bacterial_vs_eukaryotic_PCA.png and .pdf, and looks like this:
-![Bacteria vs. Eukaryotic t-SNE](./examples/data/bacterial_vs_eukaryotic_PCA.png)
+![Bacteria vs. Eukaryotic PCA](./examples/data/bacterial_vs_eukaryotic_PCA.png)
 
 ### Usage Requirements
 
