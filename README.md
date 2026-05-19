@@ -234,7 +234,7 @@ python scripts/testing/test_inference_accuracy.py
 ```
 
 This test uses known ground truth sequences:
-- Sequences 1-5: *E. coli* K-12 (should classify as bacterial, bact_prob > 0.5)
+- Sequences 1-5: *Bradyrhizobium diazoefficiens* (should classify as bacterial, bact_prob > 0.5)
 - Sequences 6-10: *Saccharomyces cerevisiae* (should classify as non-bacterial, bact_prob < 0.5)
 
 **Expected results:**
