@@ -24,13 +24,13 @@ num_train_epochs = 2
  
 model_name = f'diverse_bact_{att_heads}_{hidden_size}_{hidden_layers}_{train_len//1000}Ks'
 
-project_dir = '~/projects/BBERT'
-data_dir = '~/projects/BBERT/data/diverse_bacteria_R1_R2_100Ms'
-
 parser = argparse.ArgumentParser(description='BERT for Bacteria OOD sequence detection')
-parser.add_argument('--dataset_path', type=str, default=f'{data_dir}')
-parser.add_argument('--save_model_path', type=str, default=f'{project_dir}/models/{model_name}')
-parser.add_argument('--tokenizer_path', type=str, default=f'{project_dir}/tokenizers/base_tokenizer') #if not resuming from checkpoint
+parser.add_argument('--dataset_path', type=str, required=True,
+                     help='Path to a dataset saved with datasets.save_to_disk (must contain "train" and "val" splits)')
+parser.add_argument('--save_model_path', type=str, required=True,
+                     help='Directory to save checkpoints and the final model to')
+parser.add_argument('--tokenizer_path', type=str, required=True,
+                     help='Path to a pretrained tokenizer (ignored if resuming from a checkpoint)')
 args = parser.parse_args()
 
 logging.basicConfig(
