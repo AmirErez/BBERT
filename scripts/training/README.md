@@ -77,12 +77,10 @@ python train.py \
   shows the `datasets.DatasetDict(...).save_to_disk(...)` shape it needs to
   end up in), or contact the authors directly.
 - `--tokenizer_path`: a tokenizer compatible with `transformers.AutoTokenizer`.
-  This isn't actually corpus-trained — per the manuscript it's a fixed
-  character-level vocabulary of 5 tokens (`A`, `C`, `T`, `G`, `N`) plus special
-  tokens (`<s>`, `</s>`, `<pad>`, `<msk>`, and a few more used by this repo's
-  tokenizer). Since the vocabulary doesn't depend on the corpus, you don't
-  need to obtain or train anything separately: this exact tokenizer is
-  already committed to this repo (no `bbert download` needed for it) at
+  It's a fixed character-level vocabulary of 5 tokens (`A`, `C`, `T`, `G`, `N`)
+  plus special tokens (`<s>`, `</s>`, `<pad>`, `<msk>`, and a few more used by
+  this repo's tokenizer). It's already committed to this repo (no
+  `bbert download` needed for it) at
   [`models/diverse_bact_12_768_6_20000/checkpoint-32500/`](../../models/diverse_bact_12_768_6_20000/checkpoint-32500/)
   — just clone the repo and pass that directory:
   `--tokenizer_path models/diverse_bact_12_768_6_20000/checkpoint-32500`.
