@@ -98,7 +98,6 @@ logging.info(f'Model: {args.save_model_path}')
 dataset = load_from_disk(args.dataset_path)
 dataset.set_format(type='torch')
 logging.info(dataset)
-logging.info(dataset['train'].select(range(100))['ids'])
 
 tokenizer = AutoTokenizer.from_pretrained(last_checkpoint if last_checkpoint else args.tokenizer_path)
 logging.info(tokenizer)
